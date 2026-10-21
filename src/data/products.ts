@@ -31,6 +31,7 @@ export interface Product {
 
 const EBOOK_TEMPLATE = { vi: 'Ebook + Template - Tài liệu Marketing', en: 'Ebook + Template - Marketing Resource' };
 const EBOOK = { vi: 'Ebook - Tài liệu Marketing', en: 'Ebook - Marketing Resource' };
+const TEMPLATE = { vi: 'Template - Tài liệu Marketing', en: 'Template - Marketing Resource' };
 
 export const PRODUCTS: Product[] = [
   {
@@ -259,6 +260,65 @@ export const PRODUCTS: Product[] = [
       '/products/checklist-seo-on-page/trang-14.webp',
       '/products/checklist-seo-on-page/trang-15.webp',
     ],
+  },
+  {
+    slug: 'template-nghien-cuu-4c',
+    code: 'TNC4C',
+    icon: '🔍',
+    color: '#0e7490',
+    type: { vi: 'Template', en: 'Template' },
+    tag: TEMPLATE,
+    name: {
+      vi: 'Template Nghiên cứu 4C: Doanh nghiệp, Sản phẩm, Khách hàng, Đối thủ',
+      en: 'Template: 4C Research: Company, Product, Customer, Competitor',
+    },
+    desc: {
+      vi: 'Khung nghiên cứu 4C điền sẵn đề mục: Doanh nghiệp, Sản phẩm, Khách hàng, Đối thủ. Làm xong một lượt là có nền dữ liệu để lên chiến lược và viết content.',
+      en: 'A 4C research framework with ready-made sections: Company, Product, Customer, Competitor. Fill it in once to get the groundwork for your strategy and content.',
+    },
+    price: null,
+  },
+  {
+    slug: 'template-lich-content-tet-2027',
+    code: 'LCT27',
+    icon: '🧧',
+    color: '#c2410c',
+    type: { vi: 'Template', en: 'Template' },
+    tag: TEMPLATE,
+    name: { vi: 'Template Lịch Content Tết 2027', en: 'Template: Tet 2027 Content Calendar' },
+    desc: {
+      vi: 'Lịch content mùa Tết 2027 dựng sẵn theo từng giai đoạn, giúp bạn lên kế hoạch bài đăng, chương trình và kênh triển khai sớm, không bị dồn việc sát Tết.',
+      en: 'A ready-made Tet 2027 content calendar organised by stage, so you can plan posts, promotions and channels early instead of rushing before the holiday.',
+    },
+    price: null,
+  },
+  {
+    slug: 'template-bat-benh-ads',
+    code: 'BBADS',
+    icon: '🩺',
+    color: '#be123c',
+    type: { vi: 'Template', en: 'Template' },
+    tag: TEMPLATE,
+    name: { vi: 'Template “Bắt bệnh Ads”', en: 'Template: “Ads Diagnosis”' },
+    desc: {
+      vi: 'Template rà soát chiến dịch quảng cáo theo từng chỉ số, giúp tìm ra chỗ đang “có bệnh” trước khi tăng ngân sách hay đổi nội dung.',
+      en: 'A template to review ad campaigns metric by metric and find what is going wrong before you raise the budget or change the creative.',
+    },
+    price: null,
+  },
+  {
+    slug: 'template-bo-loc-dung-nguoi',
+    code: 'BLDN',
+    icon: '🎯',
+    color: '#7c3aed',
+    type: { vi: 'Template', en: 'Template' },
+    tag: TEMPLATE,
+    name: { vi: 'Template “Bộ lọc Đúng người”', en: 'Template: “Right-Fit Filter”' },
+    desc: {
+      vi: 'Bộ tiêu chí lọc khách hàng mục tiêu, giúp xác định đúng người cần nói chuyện để không tốn tiền quảng cáo và công sức cho tệp không phù hợp.',
+      en: 'A set of criteria to filter your target customers, so you talk to the right people and stop spending ad money and effort on the wrong audience.',
+    },
+    price: null,
   },
 ];
 
