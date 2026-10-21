@@ -5,6 +5,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import ProductCard from '../components/ProductCard.astro';
 import PaymentModal from '../components/PaymentModal.astro';
 import { PRODUCTS } from '../data/products';
+// Nhóm để lọc: theo chữ đầu tên sản phẩm ("Template…" / "Ebook…")
+const kindOf = (name: string) => (/^template/i.test(name) ? 'template' : /^ebook/i.test(name) ? 'ebook' : 'other');
 ---
 
 <BaseLayout
@@ -15,18 +17,65 @@ import { PRODUCTS } from '../data/products';
     <div class="container">
       <h1><span data-i18n-vi="Tài liệu" data-i18n-en="Marketing">Tài liệu</span> <span class="hl" data-i18n-vi="Marketing" data-i18n-en="Resources">Marketing</span></h1>
       <p data-i18n="resources.lead">Template, ebook và checklist thực chiến — mua về là dùng được ngay.</p>
+      <div class="pd-filters" role="group" aria-label="Lọc tài liệu">
+        <button type="button" class="pd-filter" data-filter="template" aria-pressed="false">Template</button>
+        <button type="button" class="pd-filter" data-filter="ebook" aria-pressed="false">Ebook</button>
+        <button type="button" class="pd-filter active" data-filter="all" aria-pressed="true" data-i18n-vi="Tất cả" data-i18n-en="All">Tất cả</button>
+      </div>
     </div>
   </section>
 
   <section class="container" style="padding-block:var(--space-content-top) var(--space-section)">
     <div class="pd-grid">
-      {PRODUCTS.map((p) => <ProductCard product={p} />)}
+      {PRODUCTS.map((p) => (
+        <div class="pd-item" data-kind={kindOf(p.name.vi)}>
+          <ProductCard product={p} />
+        </div>
+      ))}
     </div>
   </section>
   <PaymentModal />
 </BaseLayout>
 
 <style>
+  .pd-filters {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 22px;
+  }
+  .pd-filter {
+    padding: 8px 18px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--ink-soft);
+    font: inherit;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: 0.15s;
+  }
+  .pd-filter:hover {
+    border-color: var(--brand);
+    color: var(--brand);
+  }
+  .pd-filter.active {
+    background: var(--brand);
+    border-color: var(--brand);
+    color: #fff;
+  }
+  .pd-item {
+    display: flex;
+    flex-direction: column;
+  }
+  .pd-item > :global(.pd-card) {
+    flex: 1;
+  }
+  .pd-item.is-hidden {
+    display: none;
+  }
   .pd-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -98,3 +147,17 @@ import { PRODUCTS } from '../data/products';
   }
 </style>
 
+<script>
+  const filters = document.querySelectorAll<HTMLButtonElement>('.pd-filter');
+  const items = document.querySelectorAll<HTMLElement>('.pd-item');
+  filters.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const f = btn.dataset.filter || 'all';
+      filters.forEach((b) => {
+        b.classList.toggle('active', b === btn);
+        b.setAttribute('aria-pressed', String(b === btn));
+      });
+      items.forEach((it) => it.classList.toggle('is-hidden', f !== 'all' && it.dataset.kind !== f));
+    });
+  });
+</script>
