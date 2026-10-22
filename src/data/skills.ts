@@ -43,7 +43,7 @@ export const SKILLS: Skill[] = [
     },
     price: 399000,
     cta: { vi: 'Đăng ký ngay', en: 'Register now' },
-    promo: { price: 99000, from: '2026-10-11T00:00:00+07:00', until: '2026-10-20T23:59:59+07:00' },
+    promo: { price: 99000, from: '2026-10-22T00:00:00+07:00', until: '2026-11-20T23:59:59+07:00' },
     file: 'viet-content-theo-tinh-huong-ban-hang-by-sunzlammarketing.skill',
     stats: [
       { value: '50', label: { vi: 'công thức viết content', en: 'content formulas' } },
