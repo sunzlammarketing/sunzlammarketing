@@ -107,9 +107,6 @@ const featuredProducts = HOME_FEATURED.map((slug) => PRODUCTS.find((p) => p.slug
           <div class="row-head">
             <div>
               <h2 class="section-title" data-i18n-vi="Tài liệu nổi bật" data-i18n-en="Featured resources">Tài liệu nổi bật</h2>
-              <p class="section-sub" style="margin-bottom:0" data-i18n-vi="Template và ebook dùng được ngay, có cả bản miễn phí." data-i18n-en="Templates and ebooks you can use right away, including free ones.">
-                Template và ebook dùng được ngay, có cả bản miễn phí.
-              </p>
             </div>
             <a href="/tai-lieu" class="btn btn-ghost" data-i18n-vi="Xem tất cả tài liệu →" data-i18n-en="View all resources →">Xem tất cả tài liệu →</a>
           </div>
@@ -509,10 +506,13 @@ const featuredProducts = HOME_FEATURED.map((slug) => PRODUCTS.find((p) => p.slug
 
   /* Khu Tài liệu nổi bật: gọn hơn các khu khác (đệm, tiêu đề, ảnh bìa thấp, mô tả 2 dòng) */
   .feat-section {
-    padding-block: 12px;
+    padding-block: 4px;
   }
   .feat-panel {
-    padding: 24px;
+    padding: 16px 18px 18px;
+  }
+  .feat-panel .row-head {
+    align-items: center;
   }
   .feat-panel .section-title {
     font-size: clamp(1.35rem, 2.6vw, 1.75rem);
@@ -523,7 +523,7 @@ const featuredProducts = HOME_FEATURED.map((slug) => PRODUCTS.find((p) => p.slug
     font-size: 0.88rem;
   }
   .home-feat {
-    margin-top: 18px;
+    margin-top: 12px;
     gap: 14px;
   }
   .home-feat :global(.pd-media) {
@@ -570,7 +570,7 @@ const featuredProducts = HOME_FEATURED.map((slug) => PRODUCTS.find((p) => p.slug
   }
   @media (max-width: 640px) {
     .feat-panel {
-      padding: 20px 16px;
+      padding: 14px 12px;
     }
   }
   /* Trang chủ nằm trong panel nên hẹp hơn trang Tài liệu: bỏ mức 3 cột để 4 thẻ không bị lẻ 1 thẻ */
