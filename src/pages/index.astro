@@ -101,9 +101,9 @@ const featuredProducts = HOME_FEATURED.map((slug) => PRODUCTS.find((p) => p.slug
 
   <!-- Tài liệu nổi bật: đưa sản phẩm lên ngay dưới hero (chọn ở HOME_FEATURED, src/data/products.ts) -->
   {featuredProducts.length > 0 && (
-    <section class="section">
+    <section class="section feat-section">
       <div class="container">
-        <div class="panel">
+        <div class="panel feat-panel">
           <div class="row-head">
             <div>
               <h2 class="section-title" data-i18n-vi="Tài liệu nổi bật" data-i18n-en="Featured resources">Tài liệu nổi bật</h2>
@@ -113,7 +113,7 @@ const featuredProducts = HOME_FEATURED.map((slug) => PRODUCTS.find((p) => p.slug
             </div>
             <a href="/tai-lieu" class="btn btn-ghost" data-i18n-vi="Xem tất cả tài liệu →" data-i18n-en="View all resources →">Xem tất cả tài liệu →</a>
           </div>
-          <div class="pd-grid-compact home-feat" style="margin-top:28px">
+          <div class="pd-grid-compact home-feat">
             {featuredProducts.map((p) => <ProductCard product={p} />)}
           </div>
         </div>
@@ -507,6 +507,72 @@ const featuredProducts = HOME_FEATURED.map((slug) => PRODUCTS.find((p) => p.slug
   }
 
 
+  /* Khu Tài liệu nổi bật: gọn hơn các khu khác (đệm, tiêu đề, ảnh bìa thấp, mô tả 2 dòng) */
+  .feat-section {
+    padding-block: 12px;
+  }
+  .feat-panel {
+    padding: 24px;
+  }
+  .feat-panel .section-title {
+    font-size: clamp(1.35rem, 2.6vw, 1.75rem);
+    margin: 0 0 4px;
+  }
+  .feat-panel .row-head .btn {
+    padding: 9px 16px;
+    font-size: 0.88rem;
+  }
+  .home-feat {
+    margin-top: 18px;
+    gap: 14px;
+  }
+  .home-feat :global(.pd-media) {
+    aspect-ratio: 16 / 9;
+  }
+  .home-feat :global(.pc-icon) {
+    width: 72px;
+    height: 72px;
+    font-size: 2.4rem;
+    border-radius: 18px;
+  }
+  .home-feat :global(.pc-type) {
+    top: 10px;
+    left: 10px;
+    font-size: 0.64rem;
+  }
+  .home-feat :global(.pc-brand) {
+    display: none;
+  }
+  .home-feat :global(.pd-card .pd-body) {
+    padding: 12px 14px 14px;
+  }
+  .home-feat :global(.pd-card .pd-name) {
+    margin: 8px 0 4px;
+    font-size: 0.92rem;
+  }
+  .home-feat :global(.pd-card .pd-desc) {
+    font-size: 0.82rem;
+    line-height: 1.5;
+    -webkit-line-clamp: 2;
+  }
+  .home-feat :global(.pd-card .pd-more) {
+    margin: 6px 0 10px;
+  }
+  .home-feat :global(.pd-card .pd-foot) {
+    padding-top: 10px;
+    gap: 6px;
+  }
+  .home-feat :global(.pd-card .pd-price) {
+    font-size: 1.1rem;
+  }
+  .home-feat :global(.pd-card .pd-foot .buy-btn) {
+    padding: 8px 12px;
+  }
+  @media (max-width: 640px) {
+    .feat-panel {
+      padding: 20px 16px;
+    }
+  }
   /* Trang chủ nằm trong panel nên hẹp hơn trang Tài liệu: bỏ mức 3 cột để 4 thẻ không bị lẻ 1 thẻ */
   @media (max-width: 1180px) and (min-width: 961px) {
     .home-feat {
