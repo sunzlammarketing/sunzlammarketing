@@ -26,7 +26,7 @@ const kindOf = (name: string) => (/^template/i.test(name) ? 'template' : /^ebook
   </section>
 
   <section class="container" style="padding-block:var(--space-content-top) var(--space-section)">
-    <div class="pd-grid">
+    <div class="pd-grid-compact">
       {PRODUCTS.map((p) => (
         <div class="pd-item" data-kind={kindOf(p.name.vi)}>
           <ProductCard product={p} />
@@ -75,75 +75,6 @@ const kindOf = (name: string) => (/^template/i.test(name) ? 'template' : /^ebook
   }
   .pd-item.is-hidden {
     display: none;
-  }
-  .pd-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 18px;
-  }
-  /* 4 thẻ/dòng: thu nhỏ chữ, khoảng đệm để thẻ gọn */
-  .pd-grid :global(.pd-card) {
-    border-radius: 22px;
-  }
-  .pd-grid :global(.pd-body) {
-    padding: 16px 16px 18px;
-  }
-  .pd-grid :global(.pd-tag) {
-    max-width: 100%;
-    font-size: 0.6rem;
-    letter-spacing: 0.04em;
-    padding: 4px 10px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .pd-grid :global(.pd-name) {
-    margin: 12px 0 6px;
-    font-size: 1rem;
-  }
-  .pd-grid :global(.pd-desc) {
-    font-size: 0.86rem;
-  }
-  .pd-grid :global(.pd-more) {
-    margin: 8px 0 14px;
-    font-size: 0.82rem;
-  }
-  .pd-grid :global(.pd-foot) {
-    padding-top: 14px;
-    gap: 8px;
-  }
-  .pd-grid :global(.pd-price) {
-    font-size: 1.2rem;
-  }
-  .pd-grid :global(.pd-old) {
-    gap: 4px;
-    font-size: 0.74rem;
-    white-space: nowrap;
-  }
-  .pd-grid :global(.pd-off) {
-    font-size: 0.66rem;
-    padding: 1px 5px;
-  }
-  .pd-grid :global(.pd-foot .buy-btn) {
-    padding: 10px 12px;
-    font-size: 0.88rem;
-    border-radius: 12px;
-  }
-  @media (max-width: 1180px) {
-    .pd-grid {
-      grid-template-columns: repeat(3, 1fr);
-    }
-  }
-  @media (max-width: 960px) {
-    .pd-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
-  }
-  @media (max-width: 600px) {
-    .pd-grid {
-      grid-template-columns: 1fr;
-      gap: 18px;
-    }
   }
 </style>
 

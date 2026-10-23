@@ -538,3 +538,80 @@ img {
   overflow: hidden;
   clip: rect(0 0 0 0);
 }
+
+/* Lưới thẻ sản phẩm gọn, 4 thẻ/dòng (trang Tài liệu, khu Tài liệu nổi bật ở trang chủ).
+   Selector có thêm .pd-card để thắng style mặc định trong ProductCard.astro */
+.pd-grid-compact {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+}
+.pd-grid-compact article.pd-card {
+  border-radius: 22px;
+}
+.pd-grid-compact .pd-card .pd-body {
+  padding: 16px 16px 18px;
+}
+.pd-grid-compact .pd-card .pd-tag {
+  max-width: 100%;
+  font-size: 0.6rem;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pd-grid-compact .pd-card .pd-name {
+  margin: 12px 0 6px;
+  font-size: 1rem;
+}
+.pd-grid-compact .pd-card .pd-desc {
+  font-size: 0.86rem;
+}
+.pd-grid-compact .pd-card .pd-more {
+  margin: 8px 0 14px;
+  font-size: 0.82rem;
+}
+.pd-grid-compact .pd-card .pd-foot {
+  padding-top: 14px;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+/* Thẻ hẹp: giá một dòng, nút xuống dòng dưới và giãn hết bề ngang (mọi thẻ đều như nhau) */
+.pd-grid-compact .pd-card .pd-foot > :not(.buy-btn) {
+  flex-basis: 100%;
+}
+.pd-grid-compact .pd-card .pd-price {
+  font-size: 1.2rem;
+}
+.pd-grid-compact .pd-card .pd-old {
+  gap: 4px;
+  font-size: 0.74rem;
+  white-space: nowrap;
+}
+.pd-grid-compact .pd-card .pd-off {
+  font-size: 0.66rem;
+  padding: 1px 5px;
+}
+.pd-grid-compact .pd-card .pd-foot .buy-btn {
+  padding: 10px 12px;
+  font-size: 0.88rem;
+  border-radius: 12px;
+  flex-grow: 1;
+}
+@media (max-width: 1180px) {
+  .pd-grid-compact {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (max-width: 960px) {
+  .pd-grid-compact {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 600px) {
+  .pd-grid-compact {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+}

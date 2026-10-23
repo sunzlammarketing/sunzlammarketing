@@ -113,7 +113,7 @@ const featuredProducts = HOME_FEATURED.map((slug) => PRODUCTS.find((p) => p.slug
             </div>
             <a href="/tai-lieu" class="btn btn-ghost" data-i18n-vi="Xem tất cả tài liệu →" data-i18n-en="View all resources →">Xem tất cả tài liệu →</a>
           </div>
-          <div class="grid grid-3" style="margin-top:32px">
+          <div class="pd-grid-compact home-feat" style="margin-top:28px">
             {featuredProducts.map((p) => <ProductCard product={p} />)}
           </div>
         </div>
@@ -507,6 +507,12 @@ const featuredProducts = HOME_FEATURED.map((slug) => PRODUCTS.find((p) => p.slug
   }
 
 
+  /* Trang chủ nằm trong panel nên hẹp hơn trang Tài liệu: bỏ mức 3 cột để 4 thẻ không bị lẻ 1 thẻ */
+  @media (max-width: 1180px) and (min-width: 961px) {
+    .home-feat {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
   .row-head {
     display: flex;
     align-items: flex-end;

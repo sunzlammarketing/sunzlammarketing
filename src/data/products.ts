@@ -478,8 +478,13 @@ export const PRODUCTS: Product[] = [
   },
 ];
 
-// Sản phẩm hiện ở khu "Tài liệu nổi bật" trên trang chủ (đúng 3 cái = 1 hàng). Đổi slug tại đây.
-export const HOME_FEATURED = ['template-lich-content-tet-2027', 'template-bat-benh-ads', 'ebook-50-cong-thuc-viet-content'];
+// Sản phẩm hiện ở khu "Tài liệu nổi bật" trên trang chủ (4 cái = 1 hàng), đúng thứ tự. Đổi slug tại đây.
+export const HOME_FEATURED = [
+  'template-lich-content-tet-2027',
+  'nhap-mon-marketing',
+  'template-nghien-cuu-4c',
+  'ebook-50-cong-thuc-viet-content',
+];
 
 // Tài liệu gợi ý ở cuối mỗi bài blog, theo chủ đề (slug trong src/data/categories.ts). Tối đa 2 cái/chủ đề.
 export const RELATED_BY_CATEGORY: Record<string, string[]> = {
