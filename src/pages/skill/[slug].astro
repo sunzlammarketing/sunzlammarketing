@@ -3,6 +3,8 @@
 // mỗi phần là một khối lớn (panel) với nhãn viên thuốc, tiêu đề có cụm chữ gradient,
 // thẻ có nhãn màu riêng, danh sách icon ✓ ✕ ! ☆ +, ô "Phù hợp khi" nổi bật.
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import Reviews from '../../components/Reviews.astro';
+import ZaloAsk from '../../components/ZaloAsk.astro';
 import BuyButton from '../../components/BuyButton.astro';
 import PaymentModal from '../../components/PaymentModal.astro';
 import PromoBar from '../../components/PromoBar.astro';
@@ -292,9 +294,11 @@ const jsonLd = {
           <p class="buy-note" data-i18n-vi="Thanh toán chuyển khoản QR, nhận link tải skill qua email." data-i18n-en="Pay by QR bank transfer, get the download link by email.">
             Thanh toán chuyển khoản QR, nhận link tải skill qua email.
           </p>
+          <ZaloAsk />
         </div>
       </div>
     </section>
+    <div class="container"><Reviews product={s.slug} /></div>
   </div>
 
   <PaymentModal />

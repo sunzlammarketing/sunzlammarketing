@@ -1,0 +1,56 @@
+---
+// Dòng "Cần hỏi trước khi mua?" kèm nút Zalo / gọi điện — đặt cạnh nút Mua trên trang sản phẩm.
+import { ZALO } from '../data/social';
+---
+
+<div class="zask">
+  <span class="zask-q" data-i18n-vi="Cần hỏi trước khi mua?" data-i18n-en="Questions before buying?">Cần hỏi trước khi mua?</span>
+  <a class="zask-btn zask-zalo" href={ZALO.url} target="_blank" rel="noopener">
+    <span class="zask-ico" aria-hidden="true">Zalo</span>
+    {ZALO.display}
+  </a>
+  <a class="zask-btn" href={ZALO.tel}>
+    <span aria-hidden="true">📞</span>
+    <span data-i18n-vi="Gọi điện" data-i18n-en="Call">Gọi điện</span>
+  </a>
+</div>
+
+<style>
+  .zask {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 10px;
+    margin-top: 14px;
+    font-size: 0.9rem;
+  }
+  .zask-q {
+    color: var(--ink-soft);
+    font-weight: 600;
+  }
+  .zask-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--ink);
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .zask-btn:hover {
+    text-decoration: none;
+    border-color: #0068ff;
+    color: #0068ff;
+  }
+  .zask-ico {
+    font-size: 0.66rem;
+    font-weight: 900;
+    color: #fff;
+    background: #0068ff;
+    padding: 2px 6px;
+    border-radius: 6px;
+  }
+</style>

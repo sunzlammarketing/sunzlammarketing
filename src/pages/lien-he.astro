@@ -1,8 +1,10 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { SOCIALS } from '../data/social';
+import { SOCIALS, ZALO } from '../data/social';
 
 const channels = [
+  { icon: '💬', label: 'Zalo', value: ZALO.display, href: ZALO.url },
+  { icon: '📞', label: 'Điện thoại', value: ZALO.display, href: ZALO.tel },
   { icon: '✉️', label: 'Email', value: 'sunzlammarketing@gmail.com', href: 'mailto:sunzlammarketing@gmail.com' },
   ...SOCIALS.map((s) => ({ svg: s.icon, color: s.color, label: s.name, value: s.handle, href: s.url })),
 ];

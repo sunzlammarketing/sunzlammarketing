@@ -1,0 +1,81 @@
+---
+// Khu "Khách hàng nói gì": chỉ hiện khi src/data/reviews.ts có review.
+import { reviewsFor } from '../data/reviews';
+interface Props {
+  product?: string; // slug sản phẩm; bỏ trống → chỉ review chung
+}
+const { product } = Astro.props;
+const list = reviewsFor(product).slice(0, 6);
+---
+
+{list.length > 0 && (
+  <section class="rv">
+    <h2 class="rv-title" data-i18n-vi="Khách hàng nói gì" data-i18n-en="What customers say">Khách hàng nói gì</h2>
+    <div class="rv-grid">
+      {list.map((r) => (
+        <figure class="rv-card">
+          <blockquote>“{r.text}”</blockquote>
+          {r.image && (
+            <a href={r.image} target="_blank" rel="noopener" class="rv-proof">
+              <img src={r.image} alt={`Ảnh chụp review của ${r.name}`} loading="lazy" />
+            </a>
+          )}
+          <figcaption>
+            <b>{r.name}</b>
+            <span>{r.role}{r.date && ` · ${r.date}`}</span>
+          </figcaption>
+        </figure>
+      ))}
+    </div>
+  </section>
+)}
+
+<style>
+  .rv {
+    margin-top: 40px;
+  }
+  .rv-title {
+    font-size: 1.35rem;
+    font-weight: 900;
+    margin: 0 0 16px;
+  }
+  .rv-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 14px;
+  }
+  .rv-card {
+    margin: 0;
+    padding: 18px;
+    border-radius: 18px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    box-shadow: var(--card-shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .rv-card blockquote {
+    margin: 0;
+    color: var(--ink);
+    line-height: 1.6;
+    font-size: 0.95rem;
+  }
+  .rv-proof img {
+    width: 100%;
+    max-height: 180px;
+    object-fit: cover;
+    object-position: top;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+  }
+  .rv-card figcaption {
+    margin-top: auto;
+    display: grid;
+    gap: 2px;
+    font-size: 0.85rem;
+  }
+  .rv-card figcaption span {
+    color: var(--ink-faint);
+  }
+</style>

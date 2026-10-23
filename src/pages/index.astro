@@ -2,6 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PostCard from '../components/PostCard.astro';
 import ProductCard from '../components/ProductCard.astro';
+import Reviews from '../components/Reviews.astro';
 import PaymentModal from '../components/PaymentModal.astro';
 import { PRODUCTS, HOME_FEATURED } from '../data/products';
 import { getCollection } from 'astro:content';
@@ -116,6 +117,8 @@ const featuredProducts = HOME_FEATURED.map((slug) => PRODUCTS.find((p) => p.slug
       </div>
     </section>
   )}
+
+  <div class="container"><Reviews /></div>
 
   <!-- Sunz Làm Marketing là ai? -->
   <section class="section me-section" id="sunz-la-ai">

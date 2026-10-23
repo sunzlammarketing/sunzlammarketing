@@ -4,6 +4,8 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import ProductCover from '../../components/ProductCover.astro';
 import ProductCard from '../../components/ProductCard.astro';
+import Reviews from '../../components/Reviews.astro';
+import ZaloAsk from '../../components/ZaloAsk.astro';
 import BuyButton from '../../components/BuyButton.astro';
 import PaymentModal from '../../components/PaymentModal.astro';
 import { PRODUCTS, formatVnd, effectivePrice, type Product } from '../../data/products';
@@ -105,6 +107,7 @@ const jsonLd = {
           </div>
           <BuyButton product={p} size="lg" />
         </div>
+        <ZaloAsk />
 
         {ep.price === 0 ? (
           <div class="pdx-how">
@@ -163,6 +166,7 @@ const jsonLd = {
         )}
       </div>
     )}
+    <div class="container"><Reviews product={p.slug} /></div>
   </article>
 
   {related.length > 0 && (
