@@ -130,9 +130,20 @@ const tiktok = SOCIALS.find((s) => s.name === 'TikTok')?.icon ?? '';
   }
 
   @media (max-width: 760px) {
-    .sfabs { right: 26px; gap: 12px; bottom: 94px; }
-    .sfab { width: 48px; height: 48px; }
-    .sfab-ico svg { width: 23px; height: 23px; }
+    /* Điện thoại: nút mạng xã hội nằm CẠNH nút chat (cùng hàng ở góc dưới) thay vì chồng lên trên,
+       để cụm nút nổi chiếm ít chỗ và không che chữ, nút Mua/Nhận trong thẻ */
+    .sfabs { right: 74px; gap: 10px; bottom: 17px; }
+    .sfab { width: 44px; height: 44px; }
+    .sfab-ico svg { width: 21px; height: 21px; }
+    /* Chừa chỗ cuối footer để nút nổi không đè lên dòng chính sách */
+    :global(.site-footer) { padding-bottom: 64px; }
+    /* Đang cuộn xuống để đọc → tạm ẩn cụm nút nổi; dừng cuộn hoặc cuộn lên thì hiện lại */
+    .sfabs { transition: opacity 0.2s, transform 0.2s, visibility 0.2s; }
+    :global(html.fabs-away) .sfabs:not(.open) {
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(16px);
+    }
     /* Điện thoại: chỉ hiện 1 nút để khỏi che nội dung; bấm vào mới bung 3 nút */
     .sfab-main { display: grid; }
     .sfabs:not(.open) > .sfab:not(.sfab-main) {
@@ -167,6 +178,24 @@ const tiktok = SOCIALS.find((s) => s.name === 'TikTok')?.icon ?? '';
     main?.setAttribute('aria-expanded', String(open));
   };
   main?.addEventListener('click', () => toggle());
+
+  // Điện thoại: ẩn tạm các nút nổi khi đang cuộn xuống, hiện lại khi cuộn lên hoặc dừng cuộn
+  const mq = window.matchMedia('(max-width: 760px)');
+  const root = document.documentElement;
+  let lastY = window.scrollY;
+  let idle: number | undefined;
+  window.addEventListener(
+    'scroll',
+    () => {
+      if (!mq.matches) return;
+      const y = window.scrollY;
+      root.classList.toggle('fabs-away', y > lastY && y > 120);
+      lastY = y;
+      clearTimeout(idle);
+      idle = window.setTimeout(() => root.classList.remove('fabs-away'), 700);
+    },
+    { passive: true },
+  );
   document.addEventListener('click', (e) => {
     const t = e.target as HTMLElement;
     if (wrap?.classList.contains('open') && (!wrap.contains(t) || t.closest('a.sfab'))) toggle(false);

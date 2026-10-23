@@ -271,16 +271,28 @@
     background: var(--brand-dark);
   }
 
+  /* Điện thoại: nút chat nhỏ hơn, sát góc; nút mạng xã hội (SocialFabs) nằm bên trái cùng hàng */
+  @media (max-width: 760px) {
+    .chat-fab {
+      right: 14px;
+      bottom: 14px;
+      width: 50px;
+      height: 50px;
+      transition: transform 0.2s ease, opacity 0.2s, visibility 0.2s;
+    }
+    /* Đang cuộn xuống (class do SocialFabs gắn) → tạm ẩn */
+    :global(html.fabs-away) .chat-fab:not(.open) {
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(16px);
+    }
+  }
   @media (max-width: 480px) {
     .chat-panel {
       right: 12px;
       left: 12px;
       width: auto;
       bottom: 86px;
-    }
-    .chat-fab {
-      right: 16px;
-      bottom: 16px;
     }
   }
 </style>

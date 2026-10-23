@@ -1,6 +1,9 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PostCard from '../components/PostCard.astro';
+import ProductCard from '../components/ProductCard.astro';
+import PaymentModal from '../components/PaymentModal.astro';
+import { PRODUCTS, HOME_FEATURED } from '../data/products';
 import { categories } from '../data/categories';
 import { getCollection } from 'astro:content';
 
@@ -15,6 +18,7 @@ const enPosts = byLang('en');
 // Mỗi mục chỉ hiển thị 3 bài (đúng 1 hàng ngang)
 const featured = [...viPosts.slice(0, 3), ...enPosts.slice(0, 3)];
 const recent = [...viPosts.slice(3, 6), ...enPosts.slice(3, 6)];
+const featuredProducts = HOME_FEATURED.map((slug) => PRODUCTS.find((p) => p.slug === slug)).filter((p) => p !== undefined);
 ---
 
 <BaseLayout title="Sunz Làm Marketing">
@@ -94,6 +98,28 @@ const recent = [...viPosts.slice(3, 6), ...enPosts.slice(3, 6)];
       </div>
     </div>
   </section>
+
+  <!-- Tài liệu nổi bật: đưa sản phẩm lên ngay dưới hero (chọn ở HOME_FEATURED, src/data/products.ts) -->
+  {featuredProducts.length > 0 && (
+    <section class="section">
+      <div class="container">
+        <div class="panel">
+          <div class="row-head">
+            <div>
+              <h2 class="section-title" data-i18n-vi="Tài liệu nổi bật" data-i18n-en="Featured resources">Tài liệu nổi bật</h2>
+              <p class="section-sub" style="margin-bottom:0" data-i18n-vi="Template và ebook dùng được ngay, có cả bản miễn phí." data-i18n-en="Templates and ebooks you can use right away, including free ones.">
+                Template và ebook dùng được ngay, có cả bản miễn phí.
+              </p>
+            </div>
+            <a href="/tai-lieu" class="btn btn-ghost" data-i18n-vi="Xem tất cả tài liệu →" data-i18n-en="View all resources →">Xem tất cả tài liệu →</a>
+          </div>
+          <div class="grid grid-3" style="margin-top:32px">
+            {featuredProducts.map((p) => <ProductCard product={p} />)}
+          </div>
+        </div>
+      </div>
+    </section>
+  )}
 
   <!-- Sunz Làm Marketing là ai? -->
   <section class="section me-section" id="sunz-la-ai">
@@ -231,6 +257,7 @@ const recent = [...viPosts.slice(3, 6), ...enPosts.slice(3, 6)];
       </div>
     </div>
   </section>
+  <PaymentModal />
 </BaseLayout>
 
 <style>

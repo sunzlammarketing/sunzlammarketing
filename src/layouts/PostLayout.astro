@@ -2,6 +2,7 @@
 import BaseLayout from './BaseLayout.astro';
 import { getCategory } from '../data/categories';
 import { absolute } from '../data/site';
+import { PRODUCTS, RELATED_BY_CATEGORY, productUrl, effectivePrice, formatVnd } from '../data/products';
 import type { CollectionEntry } from 'astro:content';
 
 interface Props {
@@ -20,6 +21,10 @@ const catName = cat ? (en ? cat.nameEn : cat.name) : '';
 const fmt = (d: Date) =>
   d.toLocaleDateString(en ? 'en-US' : 'vi-VN', { day: '2-digit', month: 'long', year: 'numeric' });
 const dateStr = fmt(pubDate);
+// Tài liệu dùng kèm bài viết (theo chủ đề) → dẫn người đọc blog sang trang sản phẩm
+const relatedProducts = (RELATED_BY_CATEGORY[category] ?? [])
+  .map((slug) => PRODUCTS.find((p) => p.slug === slug))
+  .filter((p) => p !== undefined);
 // Dữ liệu có cấu trúc cho Google: BlogPosting (tác giả, ngày đăng/cập nhật)
 const schema = {
   '@context': 'https://schema.org',
@@ -77,6 +82,29 @@ const t = {
       <div class="prose">
         <slot />
       </div>
+
+      {relatedProducts.length > 0 && (
+        <aside class="rel">
+          <b class="rel-title">{en ? 'Put this into practice' : 'Áp dụng ngay bài này với'}</b>
+          <div class="rel-list">
+            {relatedProducts.map((p) => {
+              const ep = effectivePrice(p);
+              const price = ep.price === 0 ? (en ? 'Free' : 'Miễn phí') : ep.price != null ? formatVnd(ep.price) : en ? 'Contact us' : 'Liên hệ';
+              return (
+                <a class="rel-item" href={productUrl(p)} style={`--c:${p.color}`}>
+                  <span class="rel-icon" aria-hidden="true">{p.icon}</span>
+                  <span class="rel-text">
+                    <span class="rel-name">{en ? p.name.en : p.name.vi}</span>
+                    <span class="rel-meta">
+                      <b class={ep.price === 0 ? 'rel-free' : ''}>{price}</b> · {en ? 'View details →' : 'Xem chi tiết →'}
+                    </span>
+                  </span>
+                </a>
+              );
+            })}
+          </div>
+        </aside>
+      )}
 
       {tags.length > 0 && (
         <div class="tags">
@@ -185,6 +213,79 @@ const t = {
     border: 1px solid var(--border);
     padding: 4px 12px;
     border-radius: 999px;
+  }
+  .rel {
+    margin-top: 40px;
+    padding: 22px;
+    border-radius: 20px;
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+  }
+  .rel-title {
+    display: block;
+    font-size: 1.05rem;
+    font-weight: 900;
+    margin-bottom: 14px;
+  }
+  .rel-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  @media (max-width: 640px) {
+    .rel {
+      padding: 18px 16px;
+    }
+    .rel-list {
+      grid-template-columns: 1fr;
+    }
+  }
+  .rel-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--ink);
+    transition: border-color 0.15s, transform 0.15s;
+  }
+  .rel-item:hover {
+    text-decoration: none;
+    border-color: var(--c);
+    transform: translateY(-2px);
+  }
+  .rel-icon {
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    font-size: 1.4rem;
+    background: color-mix(in srgb, var(--c) 14%, transparent);
+  }
+  .rel-text {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+  }
+  .rel-name {
+    font-weight: 800;
+    font-size: 0.92rem;
+    line-height: 1.3;
+  }
+  .rel-meta {
+    font-size: 0.82rem;
+    color: var(--brand);
+    font-weight: 700;
+  }
+  .rel-meta b {
+    color: var(--ink);
+  }
+  .rel-meta .rel-free {
+    color: #16a34a;
   }
   .post-cta {
     display: flex;

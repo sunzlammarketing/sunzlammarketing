@@ -402,7 +402,8 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   interface Rule {
     sev: Sev;
     vnOnly?: boolean; // chỉ áp dụng khi bật kiểm tra Luật Quảng cáo VN
-    patterns: string[];
+    // Chuỗi (so khớp nguyên cụm) hoặc RegExp (cho cụm có chữ chen giữa) — đều chạy trên văn bản đã bỏ dấu, viết thường
+    patterns: (string | RegExp)[];
     reason: { vi: string; en: string };
     fix: { vi: string; en: string };
   }
@@ -424,7 +425,12 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     },
     {
       sev: 'high',
-      patterns: ['cam ket 100', 'dam bao 100', 'hieu qua 100', '100% hieu qua', 'chac chan khoi', 'tuyet doi an toan'],
+      patterns: [
+        'cam ket 100', 'dam bao 100', 'hieu qua 100', '100% hieu qua', 'chac chan khoi', 'tuyet doi an toan',
+        // "cam kết hết mụn 100%", "đảm bảo trắng 100 %"…
+        /\b(cam ket|dam bao|bao dam)\b[^.!?\n]{0,30}?\b100 ?%/,
+        /\b100 ?% (khoi|het|sach|thanh cong|an toan|hieu qua)\b/,
+      ],
       reason: {
         vi: 'Cam kết tuyệt đối (100%, chắc chắn) là tuyên bố không thể chứng minh, dễ bị Facebook từ chối và vi phạm quy định quảng cáo.',
         en: 'Absolute guarantees (100%, guaranteed) are unprovable claims that Facebook commonly rejects and that breach advertising rules.',
@@ -436,7 +442,11 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     },
     {
       sev: 'high',
-      patterns: ['chua khoi', 'tri dut diem', 'dac tri', 'khoi benh', 'than duoc', 'thay the thuoc', 'diet tan goc', 'chua benh'],
+      patterns: [
+        'chua khoi', 'tri dut diem', 'dac tri', 'khoi benh', 'than duoc', 'thay the thuoc', 'diet tan goc', 'chua benh',
+        // "trị mụn", "điều trị nám", "chữa trị rụng tóc"… (bỏ qua "giá trị")
+        /(?<!gia )\b(dieu tri|chua tri|tri)( dut diem| tan goc| hieu qua)? (mun|nam|tham|seo|ran|hoi nach|rung toc|gau|mat ngu|dau|viem|benh|tieu duong|huyet ap|xuong khop|da day|trao nguoc|mo mau|tri)\b/,
+      ],
       reason: {
         vi: 'Tuyên bố chữa bệnh cho sản phẩm không phải thuốc bị cấm. Thực phẩm chức năng, mỹ phẩm không được quảng cáo như thuốc chữa bệnh.',
         en: 'Claiming a non-medicine product cures disease is prohibited. Supplements and cosmetics may not be advertised as medical treatments.',
@@ -468,6 +478,22 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       fix: {
         vi: 'Nêu con số có bối cảnh và điều kiện: “doanh thu tham khảo của học viên A sau 6 tháng, kết quả tùy năng lực và thị trường”.',
         en: 'State figures with context and conditions: "reference revenue of student A after 6 months; results vary by skill and market".',
+      },
+    },
+    {
+      sev: 'high',
+      patterns: [
+        'trang cap toc', 'trang da cap toc', 'bat tone cap toc', 'trang sau 1 dem', 'trang bat tone sau',
+        // "hết mụn sau 7 ngày", "trắng da tức thì", "mờ nám vĩnh viễn"…
+        /\b(trang|trang da|bat tone|het mun|sach mun|het nam|mo nam|het tham|mo tham|xoa nhan|het nhan|moc toc)\b[^.!?\n]{0,15}?\b(cap toc|sau \d+ (ngay|dem|tuan|lan)|sau mot dem|ngay lap tuc|tuc thi|vinh vien)\b/,
+      ],
+      reason: {
+        vi: 'Mỹ phẩm hứa hẹn hiệu quả nhanh, tức thì hoặc vĩnh viễn (trắng cấp tốc, hết mụn sau 7 ngày) là quảng cáo vượt quá công dụng đã công bố, dễ bị phạt và bị Facebook/TikTok từ chối.',
+        en: 'Cosmetics promising fast, instant or permanent results (instant whitening, acne gone in 7 days) overstate the declared use, risk fines and get rejected by Facebook/TikTok.',
+      },
+      fix: {
+        vi: 'Mô tả cảm nhận và quá trình thay vì kết quả cam kết: “da trông sáng và đều màu hơn khi dùng đều đặn”, “hỗ trợ làm dịu vùng da có mụn”.',
+        en: 'Describe the feel and the routine rather than guaranteed results: "skin looks brighter and more even with regular use", "helps soothe blemish-prone skin".',
       },
     },
     {
@@ -618,11 +644,21 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       if (rule.vnOnly && !includeVn) continue;
       const hits: string[] = [];
       for (const p of rule.patterns) {
-        const np = norm(p);
-        const idx = text.indexOf(np);
+        let idx: number;
+        let len: number;
+        if (p instanceof RegExp) {
+          const m = p.exec(text);
+          if (!m) continue;
+          idx = m.index;
+          len = m[0].length;
+        } else {
+          const np = norm(p);
+          idx = text.indexOf(np);
+          len = np.length;
+        }
         if (idx === -1) continue;
-        const original = originalSlice(raw, map, idx, np.length).trim();
-        hits.push(original || p);
+        const original = originalSlice(raw, map, idx, len).trim();
+        if (!hits.includes(original)) hits.push(original || String(p));
       }
       if (hits.length) findings.push({ rule, hits });
     }

@@ -478,6 +478,22 @@ export const PRODUCTS: Product[] = [
   },
 ];
 
+// Sản phẩm hiện ở khu "Tài liệu nổi bật" trên trang chủ (đúng 3 cái = 1 hàng). Đổi slug tại đây.
+export const HOME_FEATURED = ['template-lich-content-tet-2027', 'template-bat-benh-ads', 'ebook-50-cong-thuc-viet-content'];
+
+// Tài liệu gợi ý ở cuối mỗi bài blog, theo chủ đề (slug trong src/data/categories.ts). Tối đa 2 cái/chủ đề.
+export const RELATED_BY_CATEGORY: Record<string, string[]> = {
+  'nen-tang-chien-luoc': ['nhap-mon-marketing', 'template-nghien-cuu-4c'],
+  'khach-hang': ['template-nghien-cuu-4c', 'template-bo-loc-dung-nguoi'],
+  'thuong-hieu': ['template-nghien-cuu-4c', 'nhap-mon-marketing'],
+  'content-social': ['ebook-50-cong-thuc-viet-content', 'template-lich-content-tet-2027'],
+  'seo-website': ['checklist-seo-on-page', '30-prompt-ai-cho-marketer'],
+  digital: ['template-bat-benh-ads', 'check-phap-ly-quang-cao-2026'],
+  growth: ['pheu-marketing-aarrr', 'template-bat-benh-ads'],
+  'ecommerce-marketing': ['ebook-50-cong-thuc-viet-content', 'template-bo-loc-dung-nguoi'],
+  'du-lieu-do-luong': ['template-bat-benh-ads', 'pheu-marketing-aarrr'],
+};
+
 export const MESSENGER = 'https://m.me/sunzlammarketing';
 // Mã sản phẩm cho nội dung chuyển khoản: chữ đầu mỗi cụm của slug, giữ nguyên số (vd nhap-mon-marketing → NMM)
 export const productCode = (p: Product) =>
