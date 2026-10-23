@@ -4,7 +4,6 @@ import PostCard from '../components/PostCard.astro';
 import ProductCard from '../components/ProductCard.astro';
 import PaymentModal from '../components/PaymentModal.astro';
 import { PRODUCTS, HOME_FEATURED } from '../data/products';
-import { categories } from '../data/categories';
 import { getCollection } from 'astro:content';
 
 const all = await getCollection('blog');
@@ -162,27 +161,6 @@ const featuredProducts = HOME_FEATURED.map((slug) => PRODUCTS.find((p) => p.slug
         <a href="/gioi-thieu" class="btn btn-ghost me-cta" data-i18n="home.me.cta">Tìm hiểu thêm về Sunz →</a>
       </div>
     </div>
-    </div>
-  </section>
-
-  <!-- Categories -->
-  <section class="section">
-    <div class="container">
-      <div class="panel">
-      <h2 class="section-title" data-i18n="home.cat.title">Khám phá theo chủ đề</h2>
-      <p class="section-sub" data-i18n="home.cat.sub">
-        Chọn lĩnh vực bạn quan tâm và đào sâu vào những bài viết chất lượng.
-      </p>
-      <div class="cat-grid">
-        {categories.map((c) => (
-          <a href={`/chu-de/${c.slug}`} class="cat-card" style={`--c:${c.color}`}>
-            <span class="cat-icon">{c.icon}</span>
-            <span class="cat-name" data-i18n-vi={c.name} data-i18n-en={c.nameEn}>{c.name}</span>
-            <span class="cat-desc" data-i18n-vi={c.description} data-i18n-en={c.descriptionEn}>{c.description}</span>
-          </a>
-        ))}
-      </div>
-      </div>
     </div>
   </section>
 
@@ -461,49 +439,6 @@ const featuredProducts = HOME_FEATURED.map((slug) => PRODUCTS.find((p) => p.slug
     }
   }
 
-  .cat-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 18px;
-  }
-  .cat-card {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 22px;
-    border-radius: var(--radius);
-    border: 1px solid var(--border);
-    border-top: 3px solid var(--c);
-    background: var(--bg-card);
-    box-shadow: var(--card-shadow);
-    transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s;
-  }
-  .cat-card:hover {
-    text-decoration: none;
-    transform: translateY(-3px);
-    box-shadow: var(--shadow);
-    border-color: color-mix(in srgb, var(--c) 45%, var(--border));
-  }
-  .cat-icon {
-    font-size: 1.8rem;
-    width: 52px;
-    height: 52px;
-    display: grid;
-    place-items: center;
-    border-radius: 12px;
-    background: color-mix(in srgb, var(--c) 12%, transparent);
-  }
-  .cat-name {
-    font-weight: 800;
-    font-size: 1.1rem;
-    color: var(--ink);
-  }
-  .cat-desc {
-    color: var(--ink-soft);
-    font-size: 0.92rem;
-  }
-
-
   /* Khu Tài liệu nổi bật: gọn hơn các khu khác (đệm, tiêu đề, ảnh bìa thấp, mô tả 2 dòng) */
   .feat-section {
     padding-block: 4px;
@@ -617,16 +552,6 @@ const featuredProducts = HOME_FEATURED.map((slug) => PRODUCTS.find((p) => p.slug
     background: #f0f0f0;
   }
 
-  @media (max-width: 860px) {
-    .cat-grid {
-      grid-template-columns: 1fr 1fr;
-    }
-  }
-  @media (max-width: 560px) {
-    .cat-grid {
-      grid-template-columns: 1fr;
-    }
-  }
   .live-dot {
     width: 8px;
     height: 8px;
