@@ -101,6 +101,7 @@ export const PRODUCTS: Product[] = [
     color: '#0e7490',
     type: { vi: 'Excel / Google Sheet · 9 tab', en: 'Excel / Google Sheet · 9 tabs' },
     tag: TEMPLATE,
+    image: '/products/template-nghien-cuu-4c/cover.webp',
     name: {
       vi: 'Template Nghiên cứu 4C: Doanh nghiệp, Sản phẩm, Khách hàng, Đối thủ',
       en: 'Template: 4C Research: Company, Product, Customer, Competitor',
@@ -153,6 +154,7 @@ export const PRODUCTS: Product[] = [
         'Anyone launching a new product or channel, or rebuilding their content strategy',
       ],
     },
+    gallery: ['/products/template-nghien-cuu-4c/bia.webp'],
   },
   {
     slug: 'ebook-50-cong-thuc-viet-content',
@@ -226,6 +228,7 @@ export const PRODUCTS: Product[] = [
     color: '#c2410c',
     type: { vi: 'Excel / Google Sheet · 7 tab', en: 'Excel / Google Sheet · 7 tabs' },
     tag: TEMPLATE,
+    image: '/products/template-lich-content-tet-2027/cover.webp',
     name: { vi: 'Template Lịch Content Tết 2027', en: 'Template: Tet 2027 Content Calendar' },
     desc: {
       vi: 'Lịch content Tết Đinh Mùi 2027 chia 4 chặng từ 02/11/2026 đến 28/02/2027, có sẵn 43 đầu việc và ý tưởng theo tuần, các mốc quan trọng và bảng tự đếm tiến độ.',
@@ -269,6 +272,7 @@ export const PRODUCTS: Product[] = [
         'Anyone who has rushed everything right before Tet and wants to start in November',
       ],
     },
+    gallery: ['/products/template-lich-content-tet-2027/bia.webp'],
   },
   {
     slug: '30-prompt-ai-cho-marketer',
