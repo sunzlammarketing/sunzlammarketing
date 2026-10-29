@@ -296,6 +296,7 @@ export const PRODUCTS: Product[] = [
     color: '#be123c',
     type: { vi: 'Excel / Google Sheet · 3 tab', en: 'Excel / Google Sheet · 3 tabs' },
     tag: TEMPLATE,
+    image: '/products/template-bat-benh-ads/cover.webp',
     name: { vi: 'Template “Bắt bệnh Ads”', en: 'Template: “Ads Diagnosis”' },
     desc: {
       vi: 'Ads không ra đơn? Đừng tắt vội. Nhập 8 con số của 2 tuần, file tự tính phễu 4 chỉ số CPM, CTR, CPC, CR và chỉ ra lỗi nằm ở bước nào, nên sửa gì trước.',
@@ -341,6 +342,7 @@ export const PRODUCTS: Product[] = [
         'Anyone about to switch off a campaign for “no sales” without knowing why',
       ],
     },
+    gallery: ['/products/template-bat-benh-ads/bia.webp'],
   },
   {
     slug: 'template-bo-loc-dung-nguoi',
@@ -349,6 +351,7 @@ export const PRODUCTS: Product[] = [
     color: '#7c3aed',
     type: { vi: 'Excel / Google Sheet · 3 tab', en: 'Excel / Google Sheet · 3 tabs' },
     tag: TEMPLATE,
+    image: '/products/template-bo-loc-dung-nguoi/cover.webp',
     name: { vi: 'Template “Bộ lọc Đúng người”', en: 'Template: “Right-Fit Filter”' },
     desc: {
       vi: 'Content bán được hàng không cần nhiều người xem, nó cần đúng người xem. Trả lời 5 câu trước khi đăng, file chấm điểm và cho biết đây là content bán hàng hay content giải trí.',
@@ -392,6 +395,7 @@ export const PRODUCTS: Product[] = [
         'Content leads who need shared criteria to review scripts before shooting',
       ],
     },
+    gallery: ['/products/template-bo-loc-dung-nguoi/bia.webp'],
   },
   {
     slug: 'pheu-marketing-aarrr',
