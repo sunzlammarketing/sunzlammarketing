@@ -14,7 +14,9 @@
 
 import { APPS_SCRIPT } from './config.js';
 
-const CODE_RE = /^(SUNZ|SAOKE) [A-Z0-9]{2,10} 0\d{9} [A-Z0-9]{8}$/;
+// SĐT Việt Nam: số 0 rồi chữ số 1–9 (03x, 05x, 07x, 08x, 09x, 02x). Chặn "0" thứ hai để mã SP kết thúc bằng số 0
+// (vd SKILL50) không bị cắt sai thành "SKILL5" + "0091…".
+const CODE_RE = /^(SUNZ|SAOKE) [A-Z0-9]{2,10} 0[1-9]\d{8} [A-Z0-9]{8}$/;
 
 function json(data, status = 200, extra = {}) {
   return new Response(JSON.stringify(data), {
@@ -26,7 +28,7 @@ function json(data, status = 200, extra = {}) {
 // Tìm mã đơn trong nội dung ngân hàng gửi về (ngân hàng có thể bỏ dấu cách, thêm chữ phía trước/sau)
 export function findOrderCode(content) {
   const flat = String(content || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-  const m = flat.match(/(SUNZ|SAOKE)([A-Z0-9]{2,10}?)(0\d{9})([A-Z0-9]{8})/);
+  const m = flat.match(/(SUNZ|SAOKE)([A-Z0-9]{2,10}?)(0[1-9]\d{8})([A-Z0-9]{8})/);
   return m ? `${m[1]} ${m[2]} ${m[3]} ${m[4]}` : null;
 }
 
