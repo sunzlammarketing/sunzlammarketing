@@ -95,6 +95,19 @@ async function forwardToSheet(env, d) {
   }
 }
 
+// Tiền đã vào cho mã đơn này chưa (KV do webhook ghi ngay khi SePay báo, nhanh hơn hỏi Apps Script).
+// Trả số tiền đã nhận hoặc 0. cacheTtl 30 giây: mức thấp nhất KV cho phép, để kết quả "chưa có" không bị giữ lâu.
+export async function paidAmount(env, code) {
+  const c = String(code || '').trim().toUpperCase().replace(/\s+/g, ' ');
+  if (!env.RATE_KV || !CODE_RE.test(c)) return 0;
+  try {
+    const rec = JSON.parse((await env.RATE_KV.get(`pay:${c}`, { cacheTtl: 30 })) || 'null');
+    return Number(rec?.amount) || 0;
+  } catch {
+    return 0;
+  }
+}
+
 export async function handlePayStatus(request, env, url) {
   const cors = { 'Access-Control-Allow-Origin': '*' };
   if (request.method !== 'GET') return json({ ok: false }, 405, cors);

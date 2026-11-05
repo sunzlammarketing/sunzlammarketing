@@ -613,10 +613,13 @@ const LAST_STEP = SEPAY_AUTO
     const statusText = $('[data-pay-status-text]');
     let statusTimer: number | undefined;
     let checkRun = 0;
+    let checkCount = 0;
+    let checkNow: (() => void) | null = null; // hỏi ngay (khi khách quay lại từ app ngân hàng)
     let activeCheck: AbortController | null = null;
 
     const stopTracking = () => {
       checkRun++;
+      checkNow = null;
       clearTimeout(statusTimer);
       activeCheck?.abort();
       activeCheck = null;
@@ -640,11 +643,14 @@ const LAST_STEP = SEPAY_AUTO
 
       const check = async () => {
         if (run !== checkRun || !dlg.open) return;
+        clearTimeout(statusTimer);
 
         if (document.hidden) {
           statusTimer = window.setTimeout(check, 15000);
           return;
         }
+        // Đa số lượt hỏi chỉ xem Cloudflare (SePay báo tiền vào là có ngay); cứ 8 lượt hỏi Google Sheet 1 lần
+        const fast = auto && !current.confirmed && checkCount++ % 8 !== 0;
 
         const controller = new AbortController();
         activeCheck = controller;
@@ -656,7 +662,8 @@ const LAST_STEP = SEPAY_AUTO
 
         try {
           const res = await fetch(
-            `/api/order-status?token=${encodeURIComponent(token)}`,
+            `/api/order-status?token=${encodeURIComponent(token)}` +
+              `&code=${encodeURIComponent(current.code)}&amount=${current.amount}${fast ? '&fast=1' : ''}`,
             { cache: 'no-store', signal: controller.signal }
           );
           const data = await res.json();
@@ -741,8 +748,8 @@ const LAST_STEP = SEPAY_AUTO
         }
 
         if (!finished && run === checkRun && dlg.open) {
-          // SePay tự xác nhận: kiểm tra mỗi 5 giây khi chờ tiền, 10 giây khi chờ email; xác nhận tay: 15 giây
-          statusTimer = window.setTimeout(check, !auto ? 15000 : current.confirmed ? 10000 : 5000);
+          // SePay tự xác nhận: kiểm tra mỗi 4 giây khi chờ tiền, 8 giây khi chờ email; xác nhận tay: 15 giây
+          statusTimer = window.setTimeout(check, !auto ? 15000 : current.confirmed ? 8000 : 4000);
         }
       };
 
@@ -759,8 +766,18 @@ const LAST_STEP = SEPAY_AUTO
               : 'Sunz sẽ xác nhận thanh toán sau khi kiểm tra tiền chuyển khoản.')
       );
 
+      checkCount = 0;
+      checkNow = () => {
+        if (activeCheck) return; // đang hỏi dở thì thôi
+        void check();
+      };
       void check();
     };
+
+    // Khách chuyển khoản xong quay lại trình duyệt → hỏi ngay, không chờ hết lượt hẹn giờ
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && dlg.open) checkNow?.();
+    });
 
     dlg.addEventListener('close', stopTracking);
 

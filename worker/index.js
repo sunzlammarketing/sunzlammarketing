@@ -8,7 +8,7 @@
 // Không có bí mật nào ở đây: khoá ký token chỉ nằm trong Apps Script.
 import { handleSeoApi } from './seo-api.js';
 import { APPS_SCRIPT } from './config.js';
-import { handleSepay, handlePayStatus } from './sepay.js';
+import { handleSepay, handlePayStatus, paidAmount } from './sepay.js';
 import { handleSaoke } from './saoke.js';
 
 const SUPPORT = 'https://m.me/sunzlammarketing';
@@ -18,7 +18,7 @@ export default {
     const url = new URL(request.url);
     if (url.pathname === '/dl') return download(url);
         if (url.pathname === '/api/order-status') {
-      return orderStatus(request, url);
+      return orderStatus(request, url, env);
     }
     if (url.pathname === '/api/quote') return quote(request, env, url);
     if (url.pathname === '/api/sepay') return handleSepay(request, env);
@@ -72,7 +72,11 @@ function page(message, status) {
 }
 
 
-async function orderStatus(request, url) {
+// Trạng thái đơn cho cửa sổ thanh toán. Đường nhanh: nếu web gửi kèm code + amount và KV (webhook SePay
+// ghi ngay khi tiền vào) đã thấy đủ tiền → báo "confirmed" luôn, chỉ hỏi Apps Script thêm (tối đa 5 giây)
+// để biết email đã gửi chưa. Chưa thấy tiền → hỏi Apps Script như cũ.
+// Chỉ để HIỂN THỊ cho khách; việc giao file vẫn do Apps Script quyết định theo số tiền tính ở máy chủ.
+async function orderStatus(request, url, env) {
   const reply = (data, status = 200) =>
     new Response(JSON.stringify(data), {
       status,
@@ -94,8 +98,17 @@ async function orderStatus(request, url) {
     return reply({ ok: false, error: 'invalid_token' }, 400);
   }
 
+  const code = url.searchParams.get('code') || '';
+  const amount = Number(url.searchParams.get('amount')) || 0;
+  const paidFast = amount > 0 && (await paidAmount(env, code)) >= amount;
+  // fast=1: chưa thấy tiền thì trả "pending" ngay, không chờ Apps Script (web vẫn hỏi Apps Script định kỳ
+  // để bắt đơn được xác nhận tay hoặc huỷ)
+  if (!paidFast && url.searchParams.get('fast') === '1' && amount > 0) {
+    return reply({ ok: true, payment: 'pending', delivery: 'not_sent' });
+  }
+
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 12000);
+  const timer = setTimeout(() => controller.abort(), paidFast ? 5000 : 12000);
 
   try {
     const res = await fetch(
@@ -109,6 +122,7 @@ async function orderStatus(request, url) {
     if (!res.ok) throw new Error('upstream_error');
     const data = await res.json();
 
+    if ((!data || !data.ok) && paidFast) return reply({ ok: true, payment: 'confirmed', delivery: 'not_sent' });
     if (!data || !data.ok) {
       const missing = data?.error === 'not_found';
       return reply(
@@ -129,10 +143,11 @@ async function orderStatus(request, url) {
 
     return reply({
       ok: true,
-      payment: data.payment,
+      payment: paidFast && data.payment === 'pending' ? 'confirmed' : data.payment,
       delivery: data.delivery,
     });
   } catch {
+    if (paidFast) return reply({ ok: true, payment: 'confirmed', delivery: 'not_sent' });
     return reply({ ok: false, error: 'unavailable' }, 503);
   } finally {
     clearTimeout(timer);
