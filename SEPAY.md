@@ -11,6 +11,8 @@ Khách quét QR, chuyển khoản → tiền vào Sacombank 040100308489
 ```
 
 Mọi giao dịch tiền vào được ghi ở tab **Giao dịch SePay** trong Google Sheet đơn hàng.
+Riêng đơn của web Sao Kể (nội dung CK bắt đầu bằng `SAOKE`) **không** ghi vào Sheet Sunz: Sao Kể có Sheet "Đơn hàng Sao Kể" riêng,
+tự hỏi `/api/pay-status` để đổi trạng thái (code ở dự án sao-ke-ban-nghe, file `web/apps-script/don-hang-sao-ke.gs`).
 Giao dịch "Không khớp đơn nào" hoặc "Thiếu tiền" thì xử lý tay như cũ: chọn "Đã thanh toán" ở cột Trạng thái.
 
 ## Bước 1. Tạo API Key

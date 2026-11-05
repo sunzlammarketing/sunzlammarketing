@@ -1,17 +1,20 @@
 // Nhận báo "có tiền vào" từ SePay (webhook) và cho web hỏi lại đơn đã được trả tiền chưa.
 // - POST /api/sepay       : SePay gọi tới, xác thực bằng header "Authorization: Apikey <SEPAY_KEY>".
 //   Secret SEPAY_KEY thêm trên dashboard Cloudflare (Settings → Variables and Secrets), KHÔNG ghi ở đây.
-//   Nội dung chuyển khoản dạng "SUNZ <mã SP> <SĐT> <8 ký tự>" → lưu vào KV: pay:<mã đơn> = {amount, at, ids}.
+//   Nội dung chuyển khoản dạng "SUNZ <mã SP> <SĐT> <8 ký tự>" (web Sunz) hoặc "SAOKE …" (web Sao Kể)
+//   → lưu vào KV: pay:<mã đơn> = {amount, at, ids}.
 // - GET  /api/pay-status?code=<mã đơn> : trả {paid, amount}. Mã đơn có 8 ký tự ngẫu nhiên nên người
 //   ngoài không đoán được; chỉ trả đã trả tiền hay chưa, không lộ thông tin nào khác.
 // Dùng chung cho web Sunz và web Sao Kể Bạn Nghe (gọi từ domain khác nên có CORS).
 // - Mỗi giao dịch tiền vào cũng được chuyển sang Apps Script (tools/google-sheet-orders.gs): ghi tab
 //   "Giao dịch SePay", khớp đơn trong Sheet → "Đã thanh toán" + gửi email link tải (xem SEPAY.md).
+//   RIÊNG đơn mã SAOKE (web Sao Kể) KHÔNG chuyển sang Sheet Sunz: Sao Kể có Sheet đơn hàng riêng,
+//   tự hỏi /api/pay-status (sao-ke-ban-nghe/web/apps-script/don-hang-sao-ke.gs).
 //   Apps Script lỗi → trả 503 để SePay gửi lại; Apps Script dedupe theo mã giao dịch nên gửi lại không sao.
 
 import { APPS_SCRIPT } from './config.js';
 
-const CODE_RE = /^SUNZ [A-Z0-9]{2,10} 0\d{9} [A-Z0-9]{8}$/;
+const CODE_RE = /^(SUNZ|SAOKE) [A-Z0-9]{2,10} 0\d{9} [A-Z0-9]{8}$/;
 
 function json(data, status = 200, extra = {}) {
   return new Response(JSON.stringify(data), {
@@ -23,8 +26,8 @@ function json(data, status = 200, extra = {}) {
 // Tìm mã đơn trong nội dung ngân hàng gửi về (ngân hàng có thể bỏ dấu cách, thêm chữ phía trước/sau)
 export function findOrderCode(content) {
   const flat = String(content || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-  const m = flat.match(/SUNZ([A-Z0-9]{2,10}?)(0\d{9})([A-Z0-9]{8})/);
-  return m ? `SUNZ ${m[1]} ${m[2]} ${m[3]}` : null;
+  const m = flat.match(/(SUNZ|SAOKE)([A-Z0-9]{2,10}?)(0\d{9})([A-Z0-9]{8})/);
+  return m ? `${m[1]} ${m[2]} ${m[3]} ${m[4]}` : null;
 }
 
 export async function handleSepay(request, env) {
@@ -37,7 +40,8 @@ export async function handleSepay(request, env) {
   const code = findOrderCode(d.content || d.description);
   // KV cho web Sao Kể: chỉ khi có mã đơn và chưa ghi giao dịch này (SePay có thể gửi lại)
   if (code) await savePayment(env, d, code);
-  // Sheet đơn hàng Sunz: mọi giao dịch tiền vào (để có nhật ký đối soát đầy đủ)
+  // Sheet đơn hàng Sunz: mọi giao dịch tiền vào (để có nhật ký đối soát đầy đủ), trừ đơn của web Sao Kể
+  if (code && code.startsWith('SAOKE ')) return json({ success: true, code });
   if (!(await forwardToSheet(env, d))) return json({ success: false, error: 'sheet_unavailable' }, 503);
   return json({ success: true, code });
 }
