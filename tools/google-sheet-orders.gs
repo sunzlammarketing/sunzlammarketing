@@ -388,7 +388,7 @@ function setup() {
   const sh = getSheet_();
   sh.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]).setFontWeight('bold').setBackground('#e0e7ff');
   const rule = SpreadsheetApp.newDataValidation().requireValueInList(Object.values(STATUS), true).setAllowInvalid(true).build();
-  sh.getRange(2, COL.status, sh.getMaxRows() - 1, 1).setDataValidation(rule);
+  if (sh.getMaxRows() > 1) sh.getRange(2, COL.status, sh.getMaxRows() - 1, 1).setDataValidation(rule);
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   ScriptApp.getProjectTriggers()
     .filter((t) => t.getHandlerFunction() === 'onStatusEdit')
@@ -396,13 +396,15 @@ function setup() {
   ScriptApp.newTrigger('onStatusEdit').forSpreadsheet(ss).onEdit().create();
   secret_();
   txnSheet_();
-  const sepay = sepayKey_();
-  SpreadsheetApp.getUi().alert(
-    'Đã bật gửi email giao hàng + link tải có bảo vệ.\n' +
-      (sepay
-        ? 'SePay: đã có SEPAY_KEY, đơn sẽ tự xác nhận khi tiền vào.'
-        : 'SePay: CHƯA có SEPAY_KEY trong Thuộc tính tập lệnh, đơn vẫn phải xác nhận tay.')
-  );
+  const msg =
+    'XONG. Đã bật gửi email giao hàng + link tải có bảo vệ. ' +
+    (sepayKey_()
+      ? 'SePay: đã có SEPAY_KEY, đơn sẽ tự xác nhận khi tiền vào.'
+      : 'SePay: CHƯA có SEPAY_KEY, đơn vẫn phải xác nhận tay.');
+  Logger.log(msg); // chạy từ trang code: xem ở "Nhật ký thực thi" bên dưới
+  try {
+    SpreadsheetApp.getUi().alert(msg); // chỉ hiện được khi Sheet đang mở
+  } catch (e) {}
 }
 
 function onOpen() {
