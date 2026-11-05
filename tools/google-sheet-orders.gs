@@ -402,9 +402,8 @@ function setup() {
       ? 'SePay: đã có SEPAY_KEY, đơn sẽ tự xác nhận khi tiền vào.'
       : 'SePay: CHƯA có SEPAY_KEY, đơn vẫn phải xác nhận tay.');
   Logger.log(msg); // chạy từ trang code: xem ở "Nhật ký thực thi" bên dưới
-  try {
-    SpreadsheetApp.getUi().alert(msg); // chỉ hiện được khi Sheet đang mở
-  } catch (e) {}
+  // Toast thay cho alert: alert chờ bấm OK trong tab Sheet, chạy từ trang code sẽ bị "Vượt quá thời gian thực thi"
+  SpreadsheetApp.getActive().toast(msg, 'Sunz', 10);
 }
 
 function onOpen() {
