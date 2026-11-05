@@ -50,6 +50,19 @@ const LAST_STEP = SEPAY_AUTO
           <input name="name" type="text" autocomplete="name" placeholder="Nguyễn Văn A" />
         </label>
       </div>
+      <div class="pay-coupon">
+        <button type="button" class="pay-coupon-toggle" data-coupon-toggle>
+          🏷️ <span data-i18n-vi="Có mã giảm giá?" data-i18n-en="Have a discount code?">Có mã giảm giá?</span>
+        </button>
+        <div class="pay-coupon-row" data-coupon-row hidden>
+          <input name="coupon" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="30" placeholder="Nhập mã giảm giá" aria-label="Mã giảm giá" />
+          <button type="button" class="pay-coupon-apply" data-coupon-apply>
+            <span data-i18n-vi="Áp dụng" data-i18n-en="Apply">Áp dụng</span>
+          </button>
+        </div>
+        <p class="pay-coupon-msg" data-coupon-msg hidden></p>
+      </div>
+      <p class="pay-total" data-pay-total></p>
       <input class="pay-hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" />
       <p class="pay-err" data-pay-err hidden></p>
       <button type="submit" class="pay-next">
@@ -232,6 +245,72 @@ const LAST_STEP = SEPAY_AUTO
   }
   .pay-form input[aria-invalid='true'] {
     border-color: #ef4444;
+  }
+  .pay-coupon {
+    display: grid;
+    gap: 8px;
+  }
+  .pay-coupon-toggle {
+    justify-self: start;
+    font: inherit;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--brand);
+    background: none;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+  }
+  .pay-coupon-row {
+    display: flex;
+    gap: 8px;
+  }
+  .pay-coupon-row[hidden] {
+    display: none;
+  }
+  .pay-coupon-row input {
+    flex: 1;
+    min-width: 0;
+    text-transform: uppercase;
+  }
+  .pay-coupon-apply {
+    font: inherit;
+    font-weight: 700;
+    font-size: 0.9rem;
+    padding: 0 16px;
+    border-radius: 12px;
+    border: 1px solid var(--brand);
+    color: var(--brand);
+    background: var(--bg-card);
+    cursor: pointer;
+  }
+  .pay-coupon-apply:disabled {
+    opacity: 0.6;
+    cursor: wait;
+  }
+  .pay-coupon-msg {
+    margin: 0;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+  .pay-coupon-msg[data-ok='1'] {
+    color: #16a34a;
+  }
+  .pay-coupon-msg[data-ok='0'] {
+    color: #dc2626;
+  }
+  .pay-total {
+    margin: 0;
+    font-size: 0.95rem;
+    color: var(--ink-soft);
+  }
+  .pay-total b {
+    color: var(--brand);
+    font-size: 1.1rem;
+  }
+  .pay-total s {
+    margin-right: 6px;
+    color: var(--ink-faint);
   }
   .pay-form-row {
     display: grid;
@@ -474,7 +553,76 @@ const LAST_STEP = SEPAY_AUTO
     const stepQr = $('[data-pay-step="qr"]');
     const errBox = $('[data-pay-err]');
     const sheet = dlg.dataset.sheet || '';
-    let product = { amount: 0, pcode: '', name: '' };
+    let product = { amount: 0, base: 0, pcode: '', name: '', coupon: '' };
+    const couponRow = $('[data-coupon-row]');
+    const couponMsg = $('[data-coupon-msg]');
+    const couponApply = $<HTMLButtonElement>('[data-coupon-apply]');
+    const couponInput = form.elements.namedItem('coupon') as HTMLInputElement;
+    const totalBox = $('[data-pay-total]');
+    const renderTotal = () => {
+      const label = lang() === 'en' ? 'Amount to pay' : 'Số tiền thanh toán';
+      totalBox.innerHTML =
+        `${label}: ` + (product.coupon ? `<s>${vnd(product.base)}</s>` : '') + `<b>${vnd(product.amount)}</b>`;
+    };
+    const couponNote = (text: string, ok: boolean) => {
+      couponMsg.textContent = text;
+      couponMsg.dataset.ok = ok ? '1' : '0';
+      couponMsg.hidden = !text;
+    };
+    const clearCoupon = () => {
+      product.coupon = '';
+      product.amount = product.base;
+      renderTotal();
+    };
+    const COUPON_ERR: Record<string, [string, string]> = {
+      coupon_invalid: ['Mã giảm giá không đúng hoặc đã tắt.', 'This code is not valid.'],
+      coupon_expired: ['Mã giảm giá đã hết hạn.', 'This code has expired.'],
+      coupon_not_started: ['Mã giảm giá chưa đến ngày dùng.', 'This code is not active yet.'],
+      coupon_used_up: ['Mã giảm giá đã hết lượt dùng.', 'This code has been fully used.'],
+      coupon_not_for_product: ['Mã này không áp dụng cho sản phẩm này.', 'This code does not apply to this product.'],
+      too_many_tries: ['Bạn thử quá nhiều lần, vui lòng thử lại sau.', 'Too many tries, please try again later.'],
+    };
+    $('[data-coupon-toggle]').addEventListener('click', () => {
+      couponRow.hidden = false;
+      couponInput.focus();
+    });
+    couponInput.addEventListener('input', () => {
+      if (product.coupon) clearCoupon();
+      couponNote('', true);
+    });
+    const applyCoupon = async () => {
+      const code = couponInput.value.trim().toUpperCase();
+      const en = lang() === 'en';
+      if (!code) return couponNote(en ? 'Please enter a code.' : 'Vui lòng nhập mã giảm giá.', false);
+      couponApply.disabled = true;
+      try {
+        const res = await fetch(`/api/quote?product=${encodeURIComponent(product.pcode)}&coupon=${encodeURIComponent(code)}`, { cache: 'no-store' });
+        const d = await res.json();
+        if (d.ok && d.discount > 0) {
+          product.coupon = d.coupon;
+          product.amount = d.total;
+          renderTotal();
+          errBox.hidden = true;
+          couponNote(en ? `✓ Code ${d.coupon} applied: −${vnd(d.discount)}` : `✓ Đã áp dụng mã ${d.coupon}: giảm ${vnd(d.discount)}`, true);
+        } else {
+          clearCoupon();
+          const m = COUPON_ERR[d.error] || COUPON_ERR.coupon_invalid;
+          couponNote(d.error === 'unavailable' ? (en ? 'Cannot check the code right now, please try again.' : 'Chưa kiểm tra được mã, bạn thử lại sau ít phút nhé.') : m[en ? 1 : 0], false);
+        }
+      } catch {
+        clearCoupon();
+        couponNote(en ? 'Cannot check the code right now, please try again.' : 'Chưa kiểm tra được mã, bạn thử lại sau ít phút nhé.', false);
+      } finally {
+        couponApply.disabled = false;
+      }
+    };
+    couponApply.addEventListener('click', applyCoupon);
+    couponInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        void applyCoupon();
+      }
+    });
     const statusBox = $('[data-pay-status]');
     const statusTitle = $('[data-pay-status-title]');
     const statusText = $('[data-pay-status-text]');
@@ -657,14 +805,21 @@ const LAST_STEP = SEPAY_AUTO
 
     document.querySelectorAll<HTMLElement>('[data-pay]').forEach((btn) =>
       btn.addEventListener('click', () => {
+        // Ưu đãi hết hạn (trang chưa build lại) → tính giá thường
+        const base = Number(
+          btn.dataset.until && Date.now() > Date.parse(btn.dataset.until) ? btn.dataset.regular : btn.dataset.price
+        );
         product = {
-          // Ưu đãi hết hạn (trang chưa build lại) → tính giá thường
-          amount: Number(
-            btn.dataset.until && Date.now() > Date.parse(btn.dataset.until) ? btn.dataset.regular : btn.dataset.price
-          ),
+          amount: base,
+          base,
           pcode: btn.dataset.code || '',
           name: (lang() === 'en' ? btn.dataset.nameEn : btn.dataset.nameVi) || '',
+          coupon: '',
         };
+        couponInput.value = '';
+        couponRow.hidden = true;
+        couponNote('', true);
+        renderTotal();
         $('[data-pay-name]').textContent = product.name;
         const saved = remember() || {};
         (['phone', 'name', 'email'] as const).forEach((k) => {
@@ -697,6 +852,16 @@ const LAST_STEP = SEPAY_AUTO
           : lang() === 'en' ? 'Please enter a valid 10-digit phone number.' : 'Vui lòng nhập số điện thoại hợp lệ (10 số).';
         errBox.hidden = false;
         (!emailOk ? emailEl : phoneEl).focus();
+        return;
+      }
+      // Có gõ mã giảm giá mà chưa bấm Áp dụng (hoặc mã sai) → nhắc trước khi hiện QR
+      if (couponInput.value.trim() && !product.coupon) {
+        errBox.textContent =
+          lang() === 'en'
+            ? 'Tap “Apply” to use your discount code, or clear it to pay the full price.'
+            : 'Bấm “Áp dụng” để dùng mã giảm giá, hoặc xoá mã nếu muốn thanh toán giá gốc.';
+        errBox.hidden = false;
+        couponInput.focus();
         return;
       }
       errBox.hidden = true;
@@ -736,6 +901,7 @@ const LAST_STEP = SEPAY_AUTO
         statusToken,
         product: product.name,
         amount,
+        coupon: product.coupon,
         name,
         phone,
         email,

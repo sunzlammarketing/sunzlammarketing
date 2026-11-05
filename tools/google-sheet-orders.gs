@@ -21,6 +21,12 @@
  * Giao dịch không khớp đơn nào (sai nội dung, thiếu tiền) → ghi "Không khớp", bạn xử lý tay:
  * cột "Trạng thái" chọn "Đã thanh toán" → email giao hàng tự gửi (như cũ).
  * Menu Sunz › "Gửi lại email…" = gửi link mới cho dòng đang chọn (đặt lại lượt tải).
+ *
+ * ── MÃ GIẢM GIÁ ─────────────────────────────────────────────────────────────────
+ * Tab "Mã giảm giá" (tự tạo khi chạy setup): mỗi dòng 1 mã. Loại "%" hoặc "đ"; để trống "Áp dụng cho"
+ * = mọi sản phẩm có giá; "Bật" bỏ tick là tắt mã. "Đã dùng" tự tăng khi đơn dùng mã được thanh toán.
+ * Số tiền đơn luôn được tính lại ở đây theo bảng giá web (SITE/prices.json) + mã giảm giá,
+ * không tin số tiền trình duyệt gửi lên.
  */
 
 // ===== CẤU HÌNH =====
@@ -96,12 +102,15 @@ const PRODUCTS = {
 };
 
 // Cột trong sheet (1 = A)
-const COL = { time: 1, code: 2, product: 3, amount: 4, name: 5, phone: 6, email: 7, status: 8, page: 9, sentAt: 10, downloads: 11, token: 12, txn: 13 };
-const HEADERS = ['Thời gian', 'Mã đơn (nội dung CK)', 'Sản phẩm', 'Số tiền', 'Họ tên', 'SĐT / Zalo', 'Email', 'Trạng thái', 'Trang', 'Đã gửi email lúc', 'Lượt tải', 'Mã tra cứu', 'Mã giao dịch SePay'];
+const COL = { time: 1, code: 2, product: 3, amount: 4, name: 5, phone: 6, email: 7, status: 8, page: 9, sentAt: 10, downloads: 11, token: 12, txn: 13, coupon: 14 };
+const HEADERS = ['Thời gian', 'Mã đơn (nội dung CK)', 'Sản phẩm', 'Số tiền', 'Họ tên', 'SĐT / Zalo', 'Email', 'Trạng thái', 'Trang', 'Đã gửi email lúc', 'Lượt tải', 'Mã tra cứu', 'Mã giao dịch SePay', 'Mã giảm giá'];
 // API Key của webhook SePay (cùng giá trị với secret SEPAY_KEY trên Cloudflare). Có thể điền thẳng ở đây
 // hoặc thêm Thuộc tính tập lệnh SEPAY_KEY (ưu tiên Thuộc tính). KHÔNG đưa bản có key lên GitHub.
 const SEPAY_KEY = '';
 const TXN_SHEET = 'Giao dịch SePay';
+const COUPON_SHEET = 'Mã giảm giá';
+const COUPON_HEADERS = ['Mã', 'Loại (% hoặc đ)', 'Giá trị', 'Áp dụng cho (mã SP, cách nhau dấu phẩy; trống = tất cả)', 'Bắt đầu', 'Hết hạn', 'Lượt tối đa (trống = không giới hạn)', 'Đã dùng', 'Bật', 'Ghi chú'];
+const MIN_TOTAL = 2000; // giảm xong không thấp hơn mức này (tránh đơn 0 ₫ / số lẻ ngân hàng không nhận)
 const TXN_HEADERS = ['Nhận lúc', 'Mã GD SePay', 'Ngày GD (ngân hàng)', 'Số tiền', 'Nội dung CK', 'Mã tham chiếu', 'Kết quả', 'Mã đơn khớp'];
 const STATUS = { pending: 'Chờ thanh toán', claimed: 'Khách báo đã CK', paid: 'Đã thanh toán', sent: 'Đã gửi email', missing: 'Thiếu file tải', cancel: 'Huỷ' };
 
@@ -148,11 +157,16 @@ function doPost(e) {
       return out_({ ok: false, error: 'invalid_token' });
     }
 
+    // Tính lại số tiền ở máy chủ: giá web hiện tại + mã giảm giá (nếu hợp lệ)
+    const pcode = code.split(/\s+/)[1] || '';
+    const q = quote_(pcode, d.coupon);
+    const amount = q.ok ? q.total : q.base != null ? q.base : Number(d.amount) || '';
+
     sh.appendRow([
       new Date(),
       code,
       String(d.product || '').slice(0, 200),
-      Number(d.amount) || '',
+      amount,
       String(d.name || '').slice(0, 100),
       "'" + String(d.phone || '').slice(0, 20), // giữ số 0 đầu
       String(d.email || '').slice(0, 120),
@@ -162,8 +176,10 @@ function doPost(e) {
       0,
       statusToken,
       '',
+      q.ok && q.coupon ? q.coupon : '',
     ]);
-    return out_({ ok: true });
+    if (q.error === 'price_unavailable') getSheet_().getRange(getSheet_().getLastRow(), COL.amount).setNote('Không đọc được bảng giá web, đang dùng số tiền trình duyệt gửi. Kiểm tra lại.');
+    return out_({ ok: true, amount });
   } catch (err) {
     return out_({ ok: false, error: String(err) });
   } finally {
@@ -245,6 +261,7 @@ function handleSepay_(d) {
       } else {
         sh.getRange(row, COL.status).setValue(STATUS.paid);
         sh.getRange(row, COL.txn).setValue(id);
+        useCoupon_(String(v[COL.coupon - 1] || ''));
         result = 'Đã xác nhận đơn';
         deliverRow = row;
       }
@@ -292,6 +309,99 @@ function findRowByContent_(content) {
   return 0;
 }
 
+// ===== GIÁ & MÃ GIẢM GIÁ =====
+// Bảng giá lấy từ web (SITE/prices.json, sinh từ products.ts/skills.ts), lưu đệm 10 phút.
+function priceTable_() {
+  const cache = CacheService.getScriptCache();
+  const hit = cache.get('prices');
+  if (hit) return JSON.parse(hit);
+  const res = UrlFetchApp.fetch(SITE + '/prices.json', { muteHttpExceptions: true });
+  if (res.getResponseCode() !== 200) throw new Error('prices_http_' + res.getResponseCode());
+  const data = JSON.parse(res.getContentText()).prices || {};
+  cache.put('prices', JSON.stringify(data), 600);
+  return data;
+}
+
+// Giá đang áp dụng (có tính giá mở bán theo thời gian), null nếu không bán qua QR
+function basePrice_(pcode) {
+  const p = priceTable_()[pcode];
+  if (!p) return null;
+  const now = Date.now();
+  if (p.promo && now >= Date.parse(p.promo.from) && now <= Date.parse(p.promo.until)) return Number(p.promo.price);
+  return p.price == null ? null : Number(p.price);
+}
+
+function couponSheet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sh = ss.getSheetByName(COUPON_SHEET);
+  if (!sh) {
+    sh = ss.insertSheet(COUPON_SHEET);
+    sh.appendRow(COUPON_HEADERS);
+    sh.setFrozenRows(1);
+    sh.getRange(1, 1, 1, COUPON_HEADERS.length).setFontWeight('bold').setBackground('#fef3c7');
+    // Dòng mẫu (đang tắt): giảm 20% mọi sản phẩm, tối đa 50 lượt
+    sh.appendRow(['SUNZ20', '%', 20, '', '', '', 50, 0, false, 'Mẫu: tick ô Bật để dùng']);
+    sh.getRange(2, 9, sh.getMaxRows() - 1, 1).insertCheckboxes();
+  }
+  return sh;
+}
+
+// Tìm mã (không phân biệt hoa thường). Trả {row, c} hoặc null.
+function findCoupon_(code) {
+  const key = String(code || '').trim().toUpperCase();
+  if (!key) return null;
+  const sh = couponSheet_();
+  const n = sh.getLastRow() - 1;
+  if (n < 1) return null;
+  const rows = sh.getRange(2, 1, n, COUPON_HEADERS.length).getValues();
+  for (let i = 0; i < rows.length; i++) {
+    if (String(rows[i][0]).trim().toUpperCase() === key) return { row: i + 2, c: rows[i] };
+  }
+  return null;
+}
+
+// Báo giá cho 1 sản phẩm + mã giảm giá (mã trống = giá gốc).
+// {ok, base, discount, total, coupon} hoặc {ok:false, error, base?}
+function quote_(pcode, coupon) {
+  let base;
+  try {
+    base = basePrice_(pcode);
+  } catch (err) {
+    return { ok: false, error: 'price_unavailable' };
+  }
+  if (base == null || base <= 0) return { ok: false, error: 'not_for_sale' };
+  const code = String(coupon || '').trim().toUpperCase();
+  if (!code) return { ok: true, base, discount: 0, total: base, coupon: '' };
+
+  const f = findCoupon_(code);
+  if (!f) return { ok: false, error: 'coupon_invalid', base };
+  const [, type, value, scope, start, end, maxUses, used, enabled] = f.c;
+  const now = new Date();
+  if (enabled !== true && String(enabled).toUpperCase() !== 'TRUE') return { ok: false, error: 'coupon_invalid', base };
+  if (start && now < new Date(start)) return { ok: false, error: 'coupon_not_started', base };
+  if (end) {
+    const until = new Date(end);
+    if (until.getHours() === 0 && until.getMinutes() === 0) until.setHours(23, 59, 59); // "Hết hạn" là ngày → hết ngày đó
+    if (now > until) return { ok: false, error: 'coupon_expired', base };
+  }
+  if (maxUses !== '' && Number(used || 0) >= Number(maxUses)) return { ok: false, error: 'coupon_used_up', base };
+  const list = String(scope || '').toUpperCase().split(/[\s,;]+/).filter(Boolean);
+  if (list.length && list.indexOf(pcode) === -1) return { ok: false, error: 'coupon_not_for_product', base };
+
+  const v = Number(value) || 0;
+  let discount = String(type).indexOf('%') !== -1 ? Math.round((base * Math.min(v, 100)) / 100 / 1000) * 1000 : v;
+  discount = Math.max(0, Math.min(discount, base - MIN_TOTAL));
+  return { ok: true, base, discount, total: base - discount, coupon: code };
+}
+
+// Đơn dùng mã đã thanh toán → tăng "Đã dùng"
+function useCoupon_(code) {
+  const f = findCoupon_(code);
+  if (!f) return;
+  const cell = couponSheet_().getRange(f.row, 8);
+  cell.setValue(Number(cell.getValue() || 0) + 1);
+}
+
 // ===== LINK TẢI CÓ BẢO VỆ =====
 // Token = base64(payload) + "." + HMAC-SHA256(payload, khoá bí mật lưu trong Script Properties)
 function secret_() {
@@ -321,6 +431,7 @@ function downloadUrl_(code, pcode, index) {
 function doGet(e) {
   const prm = (e && e.parameter) || {};
   if (prm.action === 'order-status') return out_(orderStatus_(String(prm.token || '')));
+  if (prm.action === 'quote') return out_(quote_(String(prm.product || ''), String(prm.coupon || '')));
   const t = prm.dl || '';
   if (!t) return out_({ ok: false, error: 'Thiếu mã tải.' });
   try {
@@ -396,6 +507,7 @@ function setup() {
   ScriptApp.newTrigger('onStatusEdit').forSpreadsheet(ss).onEdit().create();
   secret_();
   txnSheet_();
+  couponSheet_();
   const msg =
     'XONG. Đã bật gửi email giao hàng + link tải có bảo vệ. ' +
     (sepayKey_()
@@ -419,6 +531,7 @@ function onStatusEdit(e) {
   const r = e.range;
   if (r.getSheet().getName() !== SHEET_NAME || r.getColumn() !== COL.status || r.getRow() < 2 || r.getNumRows() !== 1) return;
   if (String(e.value || r.getValue()) !== STATUS.paid) return;
+  if (String(e.oldValue || '') !== STATUS.paid) useCoupon_(String(getSheet_().getRange(r.getRow(), COL.coupon).getValue() || ''));
   deliver_(r.getRow());
 }
 

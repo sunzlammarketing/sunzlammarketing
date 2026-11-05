@@ -20,6 +20,7 @@ export default {
         if (url.pathname === '/api/order-status') {
       return orderStatus(request, url);
     }
+    if (url.pathname === '/api/quote') return quote(request, env, url);
     if (url.pathname === '/api/sepay') return handleSepay(request, env);
     if (url.pathname === '/api/pay-status') return handlePayStatus(request, env, url);
     if (url.pathname.startsWith('/api/saoke/')) return handleSaoke(request, env, url);
@@ -135,5 +136,41 @@ async function orderStatus(request, url) {
     return reply({ ok: false, error: 'unavailable' }, 503);
   } finally {
     clearTimeout(timer);
+  }
+}
+
+// Báo giá + kiểm mã giảm giá cho cửa sổ thanh toán: GET /api/quote?product=<mã SP>&coupon=<mã giảm giá>
+// Giá và mã do Apps Script tính (bảng giá web + tab "Mã giảm giá"); giới hạn 20 lần thử mã / IP / giờ.
+async function quote(request, env, url) {
+  const reply = (data, status = 200) =>
+    new Response(JSON.stringify(data), {
+      status,
+      headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex' },
+    });
+  if (request.method !== 'GET') return reply({ ok: false, error: 'method_not_allowed' }, 405);
+  const product = (url.searchParams.get('product') || '').trim().toUpperCase();
+  const coupon = (url.searchParams.get('coupon') || '').trim().toUpperCase();
+  if (!/^[A-Z0-9]{2,10}$/.test(product) || (coupon && !/^[A-Z0-9_-]{2,30}$/.test(coupon))) {
+    return reply({ ok: false, error: coupon ? 'coupon_invalid' : 'bad_request' }, 400);
+  }
+
+  if (coupon && env.RATE_KV) {
+    const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+    const key = `coupon:${ip}:${Math.floor(Date.now() / 3600000)}`;
+    const used = Number(await env.RATE_KV.get(key)) || 0;
+    if (used >= 20) return reply({ ok: false, error: 'too_many_tries' }, 429);
+    await env.RATE_KV.put(key, String(used + 1), { expirationTtl: 3700 });
+  }
+
+  try {
+    const res = await fetch(
+      `${APPS_SCRIPT}?action=quote&product=${encodeURIComponent(product)}&coupon=${encodeURIComponent(coupon)}`,
+      { redirect: 'follow' }
+    );
+    const d = await res.json();
+    if (d && d.ok) return reply({ ok: true, base: d.base, discount: d.discount, total: d.total, coupon: d.coupon });
+    return reply({ ok: false, error: String(d?.error || 'unavailable') });
+  } catch {
+    return reply({ ok: false, error: 'unavailable' }, 503);
   }
 }
