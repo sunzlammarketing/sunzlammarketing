@@ -13,6 +13,7 @@
 //   Apps Script lỗi → trả 503 để SePay gửi lại; Apps Script dedupe theo mã giao dịch nên gửi lại không sao.
 
 import { APPS_SCRIPT } from './config.js';
+import { grantSaoke } from './saoke.js';
 
 // SĐT Việt Nam: số 0 rồi chữ số 1–9 (03x, 05x, 07x, 08x, 09x, 02x). Chặn "0" thứ hai để mã SP kết thúc bằng số 0
 // (vd SKILL50) không bị cắt sai thành "SKILL5" + "0091…".
@@ -43,7 +44,8 @@ export async function handleSepay(request, env) {
   // KV cho web Sao Kể: chỉ khi có mã đơn và chưa ghi giao dịch này (SePay có thể gửi lại)
   if (code) await savePayment(env, d, code);
   // Sheet đơn hàng Sunz: mọi giao dịch tiền vào (để có nhật ký đối soát đầy đủ), trừ đơn của web Sao Kể
-  if (code && code.startsWith('SAOKE ')) return json({ success: true, code });
+  // Đơn web Sao Kể: đủ tiền → tự mở gói cho đúng tài khoản Google đã đặt (worker/saoke.js)
+  if (code && code.startsWith('SAOKE ')) { await grantSaoke(env, code); return json({ success: true, code }); }
   if (!(await forwardToSheet(env, d))) return json({ success: false, error: 'sheet_unavailable' }, 503);
   return json({ success: true, code });
 }

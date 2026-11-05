@@ -9,6 +9,7 @@
 import { handleSeoApi } from './seo-api.js';
 import { APPS_SCRIPT } from './config.js';
 import { handleSepay, handlePayStatus } from './sepay.js';
+import { handleSaoke } from './saoke.js';
 
 const SUPPORT = 'https://m.me/sunzlammarketing';
 
@@ -21,6 +22,7 @@ export default {
     }
     if (url.pathname === '/api/sepay') return handleSepay(request, env);
     if (url.pathname === '/api/pay-status') return handlePayStatus(request, env, url);
+    if (url.pathname.startsWith('/api/saoke/')) return handleSaoke(request, env, url);
     if (url.pathname.startsWith('/api/seo/')) return handleSeoApi(request, env, url);
     return env.ASSETS.fetch(request);
   },
