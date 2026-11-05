@@ -64,4 +64,4 @@ Lỗi thì xem: SePay → Nhật ký webhook (mã phản hồi), Apps Script →
 ## Bước 6. Bật trên web
 
 Thử OK thì đổi `SEPAY_AUTO = true` trong `src/data/payment.ts` (hoặc nhắn Claude "bật SePay").
-Web sẽ dùng QR của SePay và báo khách "xác nhận tự động trong 1–2 phút" ở cửa sổ thanh toán và trang chính sách.
+Web báo khách "xác nhận tự động trong 1–2 phút" ở cửa sổ thanh toán và trang chính sách.

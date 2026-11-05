@@ -1,5 +1,5 @@
 ---
-// Cửa sổ thanh toán VietQR, 2 bước (SEPAY_AUTO = true → QR SePay + báo khách xác nhận tự động):
+// Cửa sổ thanh toán VietQR, 2 bước (SEPAY_AUTO = true → báo khách thanh toán được xác nhận tự động):
 //  1. Khách nhập SĐT/Zalo (bắt buộc), họ tên, email → đơn được lưu vào Google Sheet (nếu có ORDER_SHEET_URL).
 //  2. Hiện QR; nội dung CK = "SUNZ <mã SP> <SĐT>" → khách không nhắn thì xem sao kê vẫn có SĐT để liên hệ.
 // Mở bởi nút [data-pay] trong BuyButton. Đặt 1 lần trên mỗi trang có nút mua.
@@ -14,7 +14,7 @@ const LAST_STEP = SEPAY_AUTO
   : { vi: 'Bấm “Tôi đã chuyển khoản”. Sunz xác nhận và gửi link tải tài liệu vào email của bạn.', en: "Tap “I've paid”. Sunz confirms and emails you the download link." };
 ---
 
-<dialog class="pay" id="pay-modal" data-bin={BANK.bin} data-bank={BANK.sepayBank} data-auto={SEPAY_AUTO ? '1' : undefined} data-account={BANK.account} data-holder={BANK.holder} data-messenger={MESSENGER} data-sheet={ORDER_SHEET_URL} aria-labelledby="pay-title">
+<dialog class="pay" id="pay-modal" data-bin={BANK.bin} data-auto={SEPAY_AUTO ? '1' : undefined} data-account={BANK.account} data-holder={BANK.holder} data-messenger={MESSENGER} data-sheet={ORDER_SHEET_URL} aria-labelledby="pay-title">
   <div class="pay-box">
     <button type="button" class="pay-x" data-pay-close aria-label="Đóng">✕</button>
     <h2 id="pay-title" data-i18n-vi="Thanh toán chuyển khoản" data-i18n-en="Bank transfer payment">Thanh toán chuyển khoản</h2>
@@ -716,13 +716,10 @@ const LAST_STEP = SEPAY_AUTO
         confirmed: false,
       };
 
-      // Ảnh QR (chuẩn VietQR) có sẵn số tiền + nội dung CK. Bật SePay → dùng QR của SePay, không thì img.vietqr.io.
-      const qr = auto
-        ? `https://qr.sepay.vn/img?acc=${encodeURIComponent(dlg.dataset.account || '')}` +
-          `&bank=${encodeURIComponent(dlg.dataset.bank || '')}&amount=${amount}` +
-          `&des=${encodeURIComponent(code)}&template=compact`
-        : `https://img.vietqr.io/image/${dlg.dataset.bin}-${dlg.dataset.account}-compact.png` +
-          `?amount=${amount}&addInfo=${encodeURIComponent(code)}&accountName=${encodeURIComponent(dlg.dataset.holder || '')}`;
+      // Ảnh QR chuẩn VietQR có sẵn số tiền + nội dung CK (SePay đối soát theo nội dung CK, không cần QR riêng)
+      const qr =
+        `https://img.vietqr.io/image/${dlg.dataset.bin}-${dlg.dataset.account}-compact.png` +
+        `?amount=${amount}&addInfo=${encodeURIComponent(code)}&accountName=${encodeURIComponent(dlg.dataset.holder || '')}`;
       $<HTMLImageElement>('[data-pay-qr]').src = qr;
       $<HTMLAnchorElement>('[data-pay-save]').href = qr;
       $('[data-pay-amount]').textContent = vnd(amount);
