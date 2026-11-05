@@ -4,19 +4,24 @@
 //
 // - POST /api/saoke/order  (Authorization: Bearer <Firebase ID token>) body {pack, phone}
 //      → tạo mã đơn "SAOKE <gói> <SĐT> <8 ký tự>", giá do MÁY CHỦ quyết định; lưu KV saoke:order:<mã>.
-// - GET  /api/saoke/me     (Authorization: Bearer …) → {packs: {SKCS: {...}, SKCN: {...}}} gói đã sở hữu.
+// - GET  /api/saoke/me     (Authorization: Bearer …) → {packs: {SKCS: {buys, cap, slots}, …}} gói đã mua.
+// - POST /api/saoke/claim  (Authorization: Bearer …) body {pack, k, label} → dùng 1 lượt của gói cho 1 người
+//      (k = mã hoá ngày giờ nơi sinh, do web tính). Mỗi lượt mua: SKCS, SKVIP = 2 người; SKCN = 1 gia đình.
 // - grantSaoke(env, code)  : gọi từ webhook SePay (worker/sepay.js) khi mã SAOKE có tiền về;
-//      đủ tiền → KV saoke:ent:<uid>. Gọi lại nhiều lần cũng không sao.
+//      đủ tiền → thêm 1 lượt mua vào KV saoke:ent:<uid>. Gọi lại nhiều lần cũng không sao (nhớ theo mã đơn).
 // ID token được kiểm chữ ký bằng khoá công khai của Google, không cần khoá bí mật nào.
 
 const PROJECT = 'sao-ke-ban-nghe';
-const PACKS = { SKCS: 'Bản giải chuyên sâu', SKCN: 'Gói Tết cả nhà' };
-const PRICE_REGULAR = 75000;
-const PRICE_PROMO = 52500;
+// Giá gốc / giá ưu đãi (đến hết PROMO_UNTIL) / số người mỗi lượt mua
+const PACKS = {
+  SKCS: { name: 'Bản giải chuyên sâu', regular: 75000, promo: 52500, per: 2 },
+  SKCN: { name: 'Gói Tết cả nhà', regular: 75000, promo: 52500, per: 1 },
+  SKVIP: { name: 'Gói VIP', regular: 149000, promo: 99000, per: 2 },
+};
 const PROMO_UNTIL = Date.parse('2026-11-15T23:59:59+07:00');
 const ORIGINS = ['https://sao-ke-ban-nghe.vercel.app', 'http://localhost:4330'];
 
-export const priceNow = (now = Date.now()) => (now <= PROMO_UNTIL ? PRICE_PROMO : PRICE_REGULAR);
+export const priceNow = (pack, now = Date.now()) => (now <= PROMO_UNTIL ? PACKS[pack].promo : PACKS[pack].regular);
 
 function corsHeaders(request) {
   const o = request.headers.get('Origin') || '';
@@ -69,16 +74,29 @@ async function readJSON(env, key) {
   try { return JSON.parse((await env.RATE_KV.get(key)) || 'null'); } catch { return null; }
 }
 
+// Chuẩn hoá dữ liệu quyền (bản cũ chỉ có {at, code, amount})
+function normEnt(ent) {
+  ent = ent || { packs: {} };
+  ent.packs = ent.packs || {};
+  for (const [k, v] of Object.entries(ent.packs)) {
+    if (v && v.buys == null) ent.packs[k] = { buys: 1, codes: v.code ? [v.code] : [], slots: [] };
+  }
+  return ent;
+}
+const view = (ent) => Object.fromEntries(Object.entries(ent.packs).map(([k, v]) => [k, { buys: v.buys, cap: v.buys * (PACKS[k]?.per || 1), slots: (v.slots || []).map((x) => ({ k: x.k, label: x.label })) }]));
+
 export async function grantSaoke(env, code) {
   const order = await readJSON(env, `saoke:order:${code}`);
   if (!order) return false;
   const pay = await readJSON(env, `pay:${code}`);
   if (!pay || (pay.amount || 0) < order.amount) return false;
   const key = `saoke:ent:${order.uid}`;
-  const ent = (await readJSON(env, key)) || { email: order.email, packs: {} };
-  if (ent.packs[order.pack]) return true;
-  ent.packs[order.pack] = { at: new Date().toISOString(), code, amount: pay.amount };
+  const ent = normEnt(await readJSON(env, key));
   ent.email = ent.email || order.email;
+  const p = (ent.packs[order.pack] = ent.packs[order.pack] || { buys: 0, codes: [], slots: [] });
+  if (p.codes.includes(code)) return true;
+  p.codes.push(code);
+  p.buys += 1;
   await env.RATE_KV.put(key, JSON.stringify(ent));
   return true;
 }
@@ -88,10 +106,28 @@ export async function handleSaoke(request, env, url) {
   const auth = request.headers.get('Authorization') || '';
   const user = auth.startsWith('Bearer ') ? await verifyIdToken(auth.slice(7)) : null;
   if (!user) return json(request, { ok: false, error: 'login_required' }, 401);
-  const ent = (await readJSON(env, `saoke:ent:${user.uid}`)) || { packs: {} };
+  const entKey = `saoke:ent:${user.uid}`;
+  const ent = normEnt(await readJSON(env, entKey));
+  const prices = Object.fromEntries(Object.entries(PACKS).map(([k, v]) => [k, { price: priceNow(k), regular: v.regular, per: v.per }]));
 
   if (url.pathname === '/api/saoke/me' && request.method === 'GET') {
-    return json(request, { ok: true, packs: ent.packs || {}, price: priceNow(), regular: PRICE_REGULAR, promoUntil: new Date(PROMO_UNTIL).toISOString() });
+    return json(request, { ok: true, packs: view(ent), prices, promoUntil: new Date(PROMO_UNTIL).toISOString() });
+  }
+
+  if (url.pathname === '/api/saoke/claim' && request.method === 'POST') {
+    let d = {};
+    try { d = await request.json(); } catch {}
+    const pack = String(d.pack || ''), k = String(d.k || ''), label = String(d.label || '').slice(0, 60);
+    const p = ent.packs[pack];
+    if (!PACKS[pack] || !p) return json(request, { ok: false, error: 'not_owned' }, 403);
+    if (!/^[A-Za-z0-9:_-]{4,48}$/.test(k)) return json(request, { ok: false, error: 'bad_key' }, 400);
+    p.slots = p.slots || [];
+    if (!p.slots.some((x) => x.k === k)) {
+      if (p.slots.length >= p.buys * PACKS[pack].per) return json(request, { ok: false, error: 'full', packs: view(ent) }, 409);
+      p.slots.push({ k, label, at: new Date().toISOString() });
+      await env.RATE_KV.put(entKey, JSON.stringify(ent));
+    }
+    return json(request, { ok: true, packs: view(ent) });
   }
 
   if (url.pathname === '/api/saoke/order' && request.method === 'POST') {
@@ -101,8 +137,7 @@ export async function handleSaoke(request, env, url) {
     const phone = String(d.phone || '').replace(/[^\d]/g, '').replace(/^84/, '0');
     if (!PACKS[pack]) return json(request, { ok: false, error: 'bad_pack' }, 400);
     if (!/^0[1-9]\d{8}$/.test(phone)) return json(request, { ok: false, error: 'bad_phone' }, 400);
-    if (ent.packs && ent.packs[pack]) return json(request, { ok: false, error: 'owned' }, 409);
-    const amount = priceNow();
+    const amount = priceNow(pack);
     const suffix = [...crypto.getRandomValues(new Uint8Array(4))].map((b) => b.toString(16).padStart(2, '0')).join('').toUpperCase();
     const code = `SAOKE ${pack} ${phone} ${suffix}`;
     await env.RATE_KV.put(`saoke:order:${code}`, JSON.stringify({ uid: user.uid, email: user.email, pack, amount, at: new Date().toISOString() }), { expirationTtl: 60 * 60 * 24 * 60 });
