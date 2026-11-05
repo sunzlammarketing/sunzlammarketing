@@ -11,9 +11,9 @@
  * 5. Triển khai → Quản lý các bản triển khai → ✏️ → Phiên bản mới → Triển khai (giữ nguyên URL).
  * 6. Sau khi thử tải OK: đổi chia sẻ các file/thư mục trên Drive về "Bị hạn chế".
  *
- * 7. SePay (tự xác nhận thanh toán): Cài đặt dự án (⚙️) → Thuộc tính tập lệnh → thêm
- *    SEPAY_KEY = đúng API Key đã đặt cho webhook trên SePay (cùng giá trị với secret
- *    SEPAY_KEY của Cloudflare Worker). Xem hướng dẫn trong SEPAY.md.
+ * 7. SePay (tự xác nhận thanh toán): điền SEPAY_KEY bên dưới (hoặc Cài đặt dự án ⚙️ → Thuộc tính
+ *    tập lệnh → SEPAY_KEY) = đúng API Key của webhook SePay, cùng giá trị với secret SEPAY_KEY của
+ *    Cloudflare Worker. Xem SEPAY.md. Bản trên GitHub để trống fileId và SEPAY_KEY.
  *
  * ── HẰNG NGÀY ───────────────────────────────────────────────────────────────────
  * Có SePay: tiền vào Sacombank → SePay báo webhook → đơn tự chuyển "Đã thanh toán" và
@@ -47,24 +47,60 @@ const PRODUCTS = {
       { label: 'Hướng dẫn cài đặt', desc: 'PDF các bước cài trên Claude, Codex, ChatGPT, Gemini.', button: 'Tải hướng dẫn (PDF)', fileId: '' },
     ],
   },
-  PLQC26: { name: 'Ebook + Template Check pháp lý quảng cáo 2026 cho Shop & KOC', page: SITE + '/tai-lieu/check-phap-ly-quang-cao-2026', files: [{ label: 'Ebook PDF', desc: '', button: 'Tải ebook (PDF)', fileId: '' }, { label: 'Template', desc: '', button: 'Tải template', fileId: '' }] },
-  PMA: { name: 'Template phễu Marketing AARRR', page: SITE + '/tai-lieu/pheu-marketing-aarrr', files: [{ label: 'Tài liệu', desc: '', button: 'Tải tài liệu', fileId: '' }] },
+  NMM: {
+    name: 'Ebook Nhập môn Marketing cho người mới',
+    page: SITE + '/tai-lieu/nhap-mon-marketing',
+    files: [
+      { label: 'Ebook PDF', desc: 'Ebook 24 trang: 8 chương nền tảng, ví dụ thực tế 8 ngành, bài tập và kế hoạch marketing 1 trang.', button: 'Tải ebook (PDF)', fileId: '' },
+    ],
+  },
+  EB50CT: {
+    name: 'Ebook 50 công thức viết content theo tình huống bán hàng',
+    page: SITE + '/tai-lieu/ebook-50-cong-thuc-viet-content',
+    files: [
+      { label: 'Ebook PDF', desc: 'Ebook 32 trang: 50 công thức, khung mẫu, ví dụ và checklist pháp lý quảng cáo.', button: 'Tải ebook (PDF)', fileId: '' },
+    ],
+  },
+  PMA: {
+    name: 'Ebook + Template Phễu Marketing AARRR',
+    page: SITE + '/tai-lieu/pheu-marketing-aarrr',
+    files: [
+      { label: 'Ebook PDF', desc: 'Ebook hướng dẫn phễu Marketing AARRR qua 5 giai đoạn.', button: 'Tải ebook (PDF)', fileId: '' },
+      { label: 'Template', desc: 'Template vẽ và đo lường hành trình khách hàng theo AARRR.', button: 'Tải template', fileId: '' },
+    ],
+  },
+  PAI30: {
+    name: 'Ebook + Template 30 prompt AI cho Marketer',
+    page: SITE + '/tai-lieu/30-prompt-ai-cho-marketer',
+    files: [
+      { label: 'Ebook PDF', desc: 'Ebook hướng dẫn dùng 30 prompt AI cho công việc Marketing.', button: 'Tải ebook (PDF)', fileId: '' },
+      { label: 'Template', desc: 'Template 30 prompt để tuỳ chỉnh theo mục tiêu, sản phẩm và khách hàng.', button: 'Tải template', fileId: '' },
+    ],
+  },
+  PLQC26: {
+    name: 'Ebook + Template Check pháp lý quảng cáo 2026 cho Shop & KOC',
+    page: SITE + '/tai-lieu/check-phap-ly-quang-cao-2026',
+    files: [
+      { label: 'Ebook PDF', desc: 'Ebook rà soát pháp lý nội dung quảng cáo 2026 cho Shop & KOC.', button: 'Tải ebook (PDF)', fileId: '' },
+      { label: 'Template', desc: 'Template ghi chú các điểm cần kiểm tra trước khi đăng.', button: 'Tải template', fileId: '' },
+    ],
+  },
   CSOP: {
-    name: 'Checklist 30 điểm tối ưu SEO on-page',
+    name: 'Ebook + Template Checklist 30 điểm tối ưu SEO On-page',
     page: SITE + '/tai-lieu/checklist-seo-on-page',
     files: [
       { label: 'Ebook PDF', desc: 'Ebook 17 trang: 30 điểm, ví dụ đúng/sai, checklist in nhanh.', button: 'Tải ebook (PDF)', fileId: '' },
       { label: 'Template chấm điểm', desc: 'File Excel: mở bằng Google Trang tính để chấm điểm tự động cho 10 bài.', button: 'Tải template (Excel)', fileId: '' },
     ],
   },
-  NMM: { name: 'Ebook Nhập môn Marketing cho người mới', page: SITE + '/tai-lieu/nhap-mon-marketing', files: [{ label: 'Ebook PDF', desc: 'Ebook 24 trang: 8 chương nền tảng, ví dụ 8 ngành, bài tập và kế hoạch marketing 1 trang.', button: 'Tải ebook (PDF)', fileId: '' }] },
-  PAI30: { name: 'Ebook + Template 30 prompt AI cho Marketer', page: SITE + '/tai-lieu/30-prompt-ai-cho-marketer', files: [{ label: 'Ebook PDF', desc: '', button: 'Tải ebook (PDF)', fileId: '' }, { label: 'Template', desc: '', button: 'Tải template', fileId: '' }] },
-  EB50CT: { name: 'Ebook 50 công thức viết content theo tình huống bán hàng', page: SITE + '/tai-lieu/ebook-50-cong-thuc-viet-content', files: [{ label: 'Ebook PDF', desc: 'Ebook 32 trang: 50 công thức, khung mẫu, ví dụ và checklist pháp lý.', button: 'Tải ebook (PDF)', fileId: '' }] },
 };
 
 // Cột trong sheet (1 = A)
 const COL = { time: 1, code: 2, product: 3, amount: 4, name: 5, phone: 6, email: 7, status: 8, page: 9, sentAt: 10, downloads: 11, token: 12, txn: 13 };
-const HEADERS = ['Thời gian', 'Mã đơn (nội dung CK)', 'Sản phẩm', 'Số tiền', 'Họ tên', 'SĐT / Zalo', 'Email', 'Trạng thái', 'Trang', 'Đã gửi email lúc', 'Lượt tải', 'Mã theo dõi (web)', 'Mã giao dịch SePay'];
+const HEADERS = ['Thời gian', 'Mã đơn (nội dung CK)', 'Sản phẩm', 'Số tiền', 'Họ tên', 'SĐT / Zalo', 'Email', 'Trạng thái', 'Trang', 'Đã gửi email lúc', 'Lượt tải', 'Mã tra cứu', 'Mã giao dịch SePay'];
+// API Key của webhook SePay (cùng giá trị với secret SEPAY_KEY trên Cloudflare). Có thể điền thẳng ở đây
+// hoặc thêm Thuộc tính tập lệnh SEPAY_KEY (ưu tiên Thuộc tính). KHÔNG đưa bản có key lên GitHub.
+const SEPAY_KEY = '';
 const TXN_SHEET = 'Giao dịch SePay';
 const TXN_HEADERS = ['Nhận lúc', 'Mã GD SePay', 'Ngày GD (ngân hàng)', 'Số tiền', 'Nội dung CK', 'Mã tham chiếu', 'Kết quả', 'Mã đơn khớp'];
 const STATUS = { pending: 'Chờ thanh toán', claimed: 'Khách báo đã CK', paid: 'Đã thanh toán', sent: 'Đã gửi email', missing: 'Thiếu file tải', cancel: 'Huỷ' };
@@ -78,6 +114,11 @@ function getSheet_() {
     sh.appendRow(HEADERS);
     sh.setFrozenRows(1);
     sh.getRange(1, 1, 1, HEADERS.length).setFontWeight('bold').setBackground('#e0e7ff');
+  }
+  // Sheet cũ ít cột hơn HEADERS (vd chưa có cột Mã giao dịch SePay) → thêm cột, tránh lỗi đọc/ghi ngoài bảng
+  if (sh.getMaxColumns() < HEADERS.length) {
+    sh.insertColumnsAfter(sh.getMaxColumns(), HEADERS.length - sh.getMaxColumns());
+    sh.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]).setFontWeight('bold').setBackground('#e0e7ff');
   }
   return sh;
 }
@@ -102,6 +143,11 @@ function doPost(e) {
       return out_({ ok: true });
     }
 
+    const statusToken = String(d.statusToken || '');
+    if (statusToken && !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(statusToken)) {
+      return out_({ ok: false, error: 'invalid_token' });
+    }
+
     sh.appendRow([
       new Date(),
       code,
@@ -114,7 +160,7 @@ function doPost(e) {
       String(d.page || '').slice(0, 200),
       '',
       0,
-      String(d.statusToken || '').slice(0, 40),
+      statusToken,
       '',
     ]);
     return out_({ ok: true });
@@ -141,7 +187,7 @@ function findRow_(code) {
 
 // ===== TRẠNG THÁI ĐƠN CHO WEB =====
 function orderStatus_(token) {
-  if (!/^[0-9a-f-]{36}$/i.test(token)) return { ok: false, error: 'not_found' };
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(token)) return { ok: false, error: 'invalid_token' };
   const sh = getSheet_();
   const n = sh.getLastRow() - 1;
   if (n < 1) return { ok: false, error: 'not_found' };
@@ -156,10 +202,14 @@ function orderStatus_(token) {
 }
 
 // ===== SEPAY: TỰ XÁC NHẬN THANH TOÁN =====
+function sepayKey_() {
+  return PropertiesService.getScriptProperties().getProperty('SEPAY_KEY') || SEPAY_KEY;
+}
+
 // Cloudflare Worker (/api/sepay, worker/sepay.js) đã kiểm tra API Key của SePay rồi chuyển giao dịch sang đây.
 // Trả ok:true khi đã xử lý xong (kể cả không khớp đơn) để SePay không gửi lại; ok:false → SePay thử lại.
 function handleSepay_(d) {
-  const key = PropertiesService.getScriptProperties().getProperty('SEPAY_KEY');
+  const key = sepayKey_();
   if (!key || d.key !== key) return { ok: false, error: 'unauthorized' };
   const tx = d.tx || {};
   const id = String(tx.id || '');
@@ -346,7 +396,7 @@ function setup() {
   ScriptApp.newTrigger('onStatusEdit').forSpreadsheet(ss).onEdit().create();
   secret_();
   txnSheet_();
-  const sepay = PropertiesService.getScriptProperties().getProperty('SEPAY_KEY');
+  const sepay = sepayKey_();
   SpreadsheetApp.getUi().alert(
     'Đã bật gửi email giao hàng + link tải có bảo vệ.\n' +
       (sepay
