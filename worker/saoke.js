@@ -7,6 +7,7 @@
 // - GET  /api/saoke/me     (Authorization: Bearer …) → {packs: {SKCS: {buys, cap, slots}, …}} gói đã mua.
 // - POST /api/saoke/claim  (Authorization: Bearer …) body {pack, k, label} → dùng 1 lượt của gói cho 1 người
 //      (k = mã hoá ngày giờ nơi sinh, do web tính). Mỗi lượt mua: SKCS, SKVIP = 2 người; SKCN = 1 gia đình.
+// - GET  /api/saoke/quote?pack=&coupon=  → {base, discount, total, coupon} (giá cuối do máy chủ tính)
 // - grantSaoke(env, code)  : gọi từ webhook SePay (worker/sepay.js) khi mã SAOKE có tiền về;
 //      đủ tiền → thêm 1 lượt mua vào KV saoke:ent:<uid>. Gọi lại nhiều lần cũng không sao (nhớ theo mã đơn).
 // ID token được kiểm chữ ký bằng khoá công khai của Google, không cần khoá bí mật nào.
@@ -19,6 +20,9 @@ const PACKS = {
   SKVIP: { name: 'Gói VIP', regular: 149000, promo: 99000, per: 2 },
 };
 const PROMO_UNTIL = Date.parse('2026-11-15T23:59:59+07:00');
+// Sheet "Đơn hàng Sao Kể" (Apps Script riêng của Sao Kể): tab "Mã giảm giá"
+const SAOKE_SHEET = 'https://script.google.com/macros/s/AKfycbxTSZwukHtUu3JFgxBgbo9g19bWIFTPoR5EqavUyfpHyZ0zhyogASNrs3keJRUjvlLb8A/exec';
+const MAX_OFF = 0.5; // tổng giảm (khuyến mãi + mã) không quá 50% giá gốc
 const ORIGINS = ['https://sao-ke-ban-nghe.vercel.app', 'http://localhost:4330'];
 
 export const priceNow = (pack, now = Date.now()) => (now <= PROMO_UNTIL ? PACKS[pack].promo : PACKS[pack].regular);
@@ -101,8 +105,34 @@ export async function grantSaoke(env, code) {
   return true;
 }
 
+// Giá cuối cho 1 gói + mã giảm giá (mã kiểm ở Sheet Sao Kể). Không bao giờ dưới 50% giá gốc.
+export async function quote(pack, coupon) {
+  const base = priceNow(pack), floor = Math.ceil((PACKS[pack].regular * (1 - MAX_OFF)) / 500) * 500;
+  const code = String(coupon || '').trim().toUpperCase();
+  if (!code) return { ok: true, base, discount: 0, total: base, coupon: '' };
+  if (!/^[A-Z0-9_-]{2,30}$/.test(code)) return { ok: false, error: 'coupon_invalid' };
+  let d;
+  try {
+    const r = await fetch(`${SAOKE_SHEET}?action=quote&pack=${pack}&coupon=${encodeURIComponent(code)}&base=${base}`, { redirect: 'follow' });
+    d = await r.json();
+  } catch { return { ok: false, error: 'coupon_unavailable' }; }
+  if (!d || !d.ok) return { ok: false, error: (d && d.error) || 'coupon_invalid' };
+  const total = Math.max(floor, base - (Number(d.discount) || 0));
+  return { ok: true, base, discount: base - total, total, coupon: d.coupon || code, capped: base - (Number(d.discount) || 0) < floor };
+}
+
 export async function handleSaoke(request, env, url) {
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders(request) });
+  if (url.pathname === '/api/saoke/quote' && request.method === 'GET') {
+    const pack = String(url.searchParams.get('pack') || '');
+    if (!PACKS[pack]) return json(request, { ok: false, error: 'bad_pack' }, 400);
+    // chống dò mã: 30 lần/IP/giờ
+    const ip = request.headers.get('CF-Connecting-IP') || 'x', rk = `saoke:quote:${ip}:${Math.floor(Date.now() / 3600e3)}`;
+    const n = Number((await env.RATE_KV.get(rk)) || 0);
+    if (n >= 30) return json(request, { ok: false, error: 'rate_limited' }, 429);
+    await env.RATE_KV.put(rk, String(n + 1), { expirationTtl: 3700 });
+    return json(request, await quote(pack, url.searchParams.get('coupon')));
+  }
   const auth = request.headers.get('Authorization') || '';
   const user = auth.startsWith('Bearer ') ? await verifyIdToken(auth.slice(7)) : null;
   if (!user) return json(request, { ok: false, error: 'login_required' }, 401);
@@ -137,11 +167,13 @@ export async function handleSaoke(request, env, url) {
     const phone = String(d.phone || '').replace(/[^\d]/g, '').replace(/^84/, '0');
     if (!PACKS[pack]) return json(request, { ok: false, error: 'bad_pack' }, 400);
     if (!/^0[1-9]\d{8}$/.test(phone)) return json(request, { ok: false, error: 'bad_phone' }, 400);
-    const amount = priceNow(pack);
+    const q = await quote(pack, d.coupon);
+    if (!q.ok) return json(request, { ok: false, error: q.error }, 400);
+    const amount = q.total;
     const suffix = [...crypto.getRandomValues(new Uint8Array(4))].map((b) => b.toString(16).padStart(2, '0')).join('').toUpperCase();
     const code = `SAOKE ${pack} ${phone} ${suffix}`;
-    await env.RATE_KV.put(`saoke:order:${code}`, JSON.stringify({ uid: user.uid, email: user.email, pack, amount, at: new Date().toISOString() }), { expirationTtl: 60 * 60 * 24 * 60 });
-    return json(request, { ok: true, code, amount, pack, email: user.email });
+    await env.RATE_KV.put(`saoke:order:${code}`, JSON.stringify({ uid: user.uid, email: user.email, pack, amount, coupon: q.coupon, at: new Date().toISOString() }), { expirationTtl: 60 * 60 * 24 * 60 });
+    return json(request, { ok: true, code, amount, base: q.base, discount: q.discount, coupon: q.coupon, pack, email: user.email });
   }
   return json(request, { ok: false, error: 'not_found' }, 404);
 }
