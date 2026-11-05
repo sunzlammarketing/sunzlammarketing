@@ -51,10 +51,8 @@ const LAST_STEP = SEPAY_AUTO
         </label>
       </div>
       <div class="pay-coupon">
-        <button type="button" class="pay-coupon-toggle" data-coupon-toggle>
-          🏷️ <span data-i18n-vi="Có mã giảm giá?" data-i18n-en="Have a discount code?">Có mã giảm giá?</span>
-        </button>
-        <div class="pay-coupon-row" data-coupon-row hidden>
+        <span class="pay-coupon-label">🏷️ <span data-i18n-vi="Mã giảm giá (nếu có)" data-i18n-en="Discount code (optional)">Mã giảm giá (nếu có)</span></span>
+        <div class="pay-coupon-row">
           <input name="coupon" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="30" placeholder="Nhập mã giảm giá" aria-label="Mã giảm giá" />
           <button type="button" class="pay-coupon-apply" data-coupon-apply>
             <span data-i18n-vi="Áp dụng" data-i18n-en="Apply">Áp dụng</span>
@@ -249,27 +247,19 @@ const LAST_STEP = SEPAY_AUTO
   .pay-coupon {
     display: grid;
     gap: 8px;
+    min-width: 0;
   }
-  .pay-coupon-toggle {
-    justify-self: start;
-    font: inherit;
+  .pay-coupon-label {
     font-size: 0.88rem;
     font-weight: 700;
-    color: var(--brand);
-    background: none;
-    border: 0;
-    padding: 0;
-    cursor: pointer;
   }
   .pay-coupon-row {
     display: flex;
     gap: 8px;
   }
-  .pay-coupon-row[hidden] {
-    display: none;
-  }
   .pay-coupon-row input {
     flex: 1;
+    width: 0; /* để flex co giãn, không đẩy khung rộng ra trên điện thoại */
     min-width: 0;
     text-transform: uppercase;
   }
@@ -554,7 +544,6 @@ const LAST_STEP = SEPAY_AUTO
     const errBox = $('[data-pay-err]');
     const sheet = dlg.dataset.sheet || '';
     let product = { amount: 0, base: 0, pcode: '', name: '', coupon: '' };
-    const couponRow = $('[data-coupon-row]');
     const couponMsg = $('[data-coupon-msg]');
     const couponApply = $<HTMLButtonElement>('[data-coupon-apply]');
     const couponInput = form.elements.namedItem('coupon') as HTMLInputElement;
@@ -582,10 +571,6 @@ const LAST_STEP = SEPAY_AUTO
       coupon_not_for_product: ['Mã này không áp dụng cho sản phẩm này.', 'This code does not apply to this product.'],
       too_many_tries: ['Bạn thử quá nhiều lần, vui lòng thử lại sau.', 'Too many tries, please try again later.'],
     };
-    $('[data-coupon-toggle]').addEventListener('click', () => {
-      couponRow.hidden = false;
-      couponInput.focus();
-    });
     couponInput.addEventListener('input', () => {
       if (product.coupon) clearCoupon();
       couponNote('', true);
@@ -817,7 +802,6 @@ const LAST_STEP = SEPAY_AUTO
           coupon: '',
         };
         couponInput.value = '';
-        couponRow.hidden = true;
         couponNote('', true);
         renderTotal();
         $('[data-pay-name]').textContent = product.name;
