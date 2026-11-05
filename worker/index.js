@@ -1,16 +1,15 @@
 // Cloudflare Worker: phục vụ web tĩnh (Astro) + đường dẫn tải tài liệu có bảo vệ /dl?t=<token>
-// + API công cụ kiểm tra SEO on-page /api/seo/* (worker/seo-api.js).
+// + API công cụ kiểm tra SEO on-page /api/seo/* (worker/seo-api.js)
+// + /api/sepay: SePay báo tiền vào (worker/sepay.js) → lưu KV cho web Sao Kể + chuyển sang Apps Script tự xác nhận đơn.
 // - Mọi đường dẫn khác: trả file tĩnh như cũ (env.ASSETS).
 // - /dl: chuyển token sang Apps Script (tools/google-sheet-orders.gs, hàm doGet). Apps Script kiểm tra
 //   chữ ký + hạn + số lượt tải, đọc file RIÊNG TƯ trên Drive và trả về base64; Worker trả file để
 //   trình duyệt tải xuống ngay. Người mua không bao giờ thấy link Drive.
 // Không có bí mật nào ở đây: khoá ký token chỉ nằm trong Apps Script.
 import { handleSeoApi } from './seo-api.js';
+import { APPS_SCRIPT } from './config.js';
 import { handleSepay, handlePayStatus } from './sepay.js';
 
-// Cùng URL với ORDER_SHEET_URL trong src/data/payment.ts
-const APPS_SCRIPT =
-  'https://script.google.com/macros/s/AKfycby6L7irtvK2zRWciRZIJ8f37BCWNqCJzgQPhhFrhLVehQfYxMwBmbR-jWLQn7CcMqkVsQ/exec';
 const SUPPORT = 'https://m.me/sunzlammarketing';
 
 export default {

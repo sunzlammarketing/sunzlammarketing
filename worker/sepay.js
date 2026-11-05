@@ -5,6 +5,11 @@
 // - GET  /api/pay-status?code=<mã đơn> : trả {paid, amount}. Mã đơn có 8 ký tự ngẫu nhiên nên người
 //   ngoài không đoán được; chỉ trả đã trả tiền hay chưa, không lộ thông tin nào khác.
 // Dùng chung cho web Sunz và web Sao Kể Bạn Nghe (gọi từ domain khác nên có CORS).
+// - Mỗi giao dịch tiền vào cũng được chuyển sang Apps Script (tools/google-sheet-orders.gs): ghi tab
+//   "Giao dịch SePay", khớp đơn trong Sheet → "Đã thanh toán" + gửi email link tải (xem SEPAY.md).
+//   Apps Script lỗi → trả 503 để SePay gửi lại; Apps Script dedupe theo mã giao dịch nên gửi lại không sao.
+
+import { APPS_SCRIPT } from './config.js';
 
 const CODE_RE = /^SUNZ [A-Z0-9]{2,10} 0\d{9} [A-Z0-9]{8}$/;
 
@@ -30,11 +35,16 @@ export async function handleSepay(request, env) {
   try { d = await request.json(); } catch { return json({ success: false, error: 'bad_json' }, 400); }
   if (d.transferType !== 'in') return json({ success: true, skip: 'not_incoming' });
   const code = findOrderCode(d.content || d.description);
-  if (!code) return json({ success: true, skip: 'no_order_code' });
+  // KV cho web Sao Kể: chỉ khi có mã đơn và chưa ghi giao dịch này (SePay có thể gửi lại)
+  if (code) await savePayment(env, d, code);
+  // Sheet đơn hàng Sunz: mọi giao dịch tiền vào (để có nhật ký đối soát đầy đủ)
+  if (!(await forwardToSheet(env, d))) return json({ success: false, error: 'sheet_unavailable' }, 503);
+  return json({ success: true, code });
+}
 
-  // SePay có thể gửi lại cùng một giao dịch → bỏ qua lần trùng
+async function savePayment(env, d, code) {
   const txKey = d.id != null ? `sepaytx:${d.id}` : null;
-  if (txKey && (await env.RATE_KV.get(txKey))) return json({ success: true, duplicate: true });
+  if (txKey && (await env.RATE_KV.get(txKey))) return;
 
   const key = `pay:${code}`;
   let prev = null;
@@ -47,7 +57,34 @@ export async function handleSepay(request, env) {
   };
   await env.RATE_KV.put(key, JSON.stringify(rec));
   if (txKey) await env.RATE_KV.put(txKey, '1', { expirationTtl: 60 * 60 * 24 * 120 });
-  return json({ success: true, code });
+}
+
+// true = Apps Script đã nhận (hoặc chưa cài SEPAY_KEY bên Apps Script → bỏ qua, không bắt SePay gửi lại)
+async function forwardToSheet(env, d) {
+  try {
+    const res = await fetch(APPS_SCRIPT, {
+      method: 'POST',
+      redirect: 'follow',
+      body: JSON.stringify({
+        action: 'sepay',
+        key: env.SEPAY_KEY,
+        tx: {
+          id: d.id,
+          gateway: d.gateway,
+          transactionDate: d.transactionDate,
+          accountNumber: d.accountNumber,
+          content: d.content || d.description,
+          transferType: d.transferType,
+          transferAmount: d.transferAmount,
+          referenceCode: d.referenceCode,
+        },
+      }),
+    });
+    const data = await res.json();
+    return !!data && (data.ok || data.error === 'unauthorized');
+  } catch {
+    return false;
+  }
 }
 
 export async function handlePayStatus(request, env, url) {

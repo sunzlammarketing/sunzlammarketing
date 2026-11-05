@@ -1,13 +1,20 @@
 ---
-// Cửa sổ thanh toán VietQR, 2 bước:
+// Cửa sổ thanh toán VietQR, 2 bước (SEPAY_AUTO = true → QR SePay + báo khách xác nhận tự động):
 //  1. Khách nhập SĐT/Zalo (bắt buộc), họ tên, email → đơn được lưu vào Google Sheet (nếu có ORDER_SHEET_URL).
 //  2. Hiện QR; nội dung CK = "SUNZ <mã SP> <SĐT>" → khách không nhắn thì xem sao kê vẫn có SĐT để liên hệ.
 // Mở bởi nút [data-pay] trong BuyButton. Đặt 1 lần trên mỗi trang có nút mua.
-import { BANK, ORDER_SHEET_URL } from '../data/payment';
+import { BANK, ORDER_SHEET_URL, SEPAY_AUTO } from '../data/payment';
 import { MESSENGER } from '../data/products';
+// Lời nhắn theo chế độ xác nhận: SePay tự động hoặc Sunz xác nhận tay (SEPAY_AUTO trong src/data/payment.ts)
+const LEAD = SEPAY_AUTO
+  ? { vi: 'Thanh toán được xác nhận tự động, tài liệu gửi qua email trong 1–2 phút.', en: 'Payment is confirmed automatically; the file is emailed within 1–2 minutes.' }
+  : { vi: 'Tài liệu được gửi qua email sau khi Sunz xác nhận thanh toán.', en: 'The file is sent to your email once Sunz confirms payment.' };
+const LAST_STEP = SEPAY_AUTO
+  ? { vi: 'Giữ cửa sổ này mở: hệ thống tự nhận tiền và gửi link tải vào email của bạn trong 1–2 phút.', en: 'Keep this window open: payment is detected automatically and the download link is emailed within 1–2 minutes.' }
+  : { vi: 'Bấm “Tôi đã chuyển khoản”. Sunz xác nhận và gửi link tải tài liệu vào email của bạn.', en: "Tap “I've paid”. Sunz confirms and emails you the download link." };
 ---
 
-<dialog class="pay" id="pay-modal" data-bin={BANK.bin} data-account={BANK.account} data-holder={BANK.holder} data-messenger={MESSENGER} data-sheet={ORDER_SHEET_URL} aria-labelledby="pay-title">
+<dialog class="pay" id="pay-modal" data-bin={BANK.bin} data-bank={BANK.sepayBank} data-auto={SEPAY_AUTO ? '1' : undefined} data-account={BANK.account} data-holder={BANK.holder} data-messenger={MESSENGER} data-sheet={ORDER_SHEET_URL} aria-labelledby="pay-title">
   <div class="pay-box">
     <button type="button" class="pay-x" data-pay-close aria-label="Đóng">✕</button>
     <h2 id="pay-title" data-i18n-vi="Thanh toán chuyển khoản" data-i18n-en="Bank transfer payment">Thanh toán chuyển khoản</h2>
@@ -26,8 +33,8 @@ import { MESSENGER } from '../data/products';
 
     <!-- Bước 1: thông tin liên hệ -->
     <form class="pay-form" data-pay-step="info" novalidate>
-      <p class="pay-form-lead" data-i18n-vi="Tài liệu được gửi qua email sau khi Sunz xác nhận thanh toán." data-i18n-en="The file is sent to your email once Sunz confirms payment.">
-        Tài liệu được gửi qua email sau khi Sunz xác nhận thanh toán.
+      <p class="pay-form-lead" data-i18n-vi={LEAD.vi} data-i18n-en={LEAD.en}>
+        {LEAD.vi}
       </p>
       <label>
         <span><span data-i18n-vi="Email nhận tài liệu" data-i18n-en="Email to receive the file">Email nhận tài liệu</span> <b class="req">*</b></span>
@@ -97,8 +104,8 @@ import { MESSENGER } from '../data/products';
       <li data-i18n-vi="Giữ nguyên số tiền và nội dung chuyển khoản, xác nhận thanh toán." data-i18n-en="Keep the amount and transfer note as filled in, then confirm.">
         Giữ nguyên số tiền và nội dung chuyển khoản, xác nhận thanh toán.
       </li>
-      <li data-i18n-vi="Bấm “Tôi đã chuyển khoản”. Sunz xác nhận và gửi link tải tài liệu vào email của bạn." data-i18n-en="Tap “I've paid”. Sunz confirms and emails you the download link.">
-        Bấm “Tôi đã chuyển khoản”. Sunz xác nhận và gửi link tải tài liệu vào email của bạn.
+      <li data-i18n-vi={LAST_STEP.vi} data-i18n-en={LAST_STEP.en}>
+        {LAST_STEP.vi}
       </li>
     </ol>
 
@@ -439,6 +446,7 @@ import { MESSENGER } from '../data/products';
   confirmed: false,
 };
     let timer: number | undefined;
+    const auto = dlg.dataset.auto === '1'; // SePay tự xác nhận
 
     const notify = (msg: string) => {
       if (!toast) return;
@@ -542,7 +550,9 @@ import { MESSENGER } from '../data/products';
                     : `Link tải đã được gửi tới ${current.email}. Bạn kiểm tra cả mục Spam/Thư rác nhé.`)
                 : (english
                     ? 'Sunz has confirmed your payment. Your download email is being processed.'
-                    : 'Sunz đã xác nhận thanh toán. Email giao tài liệu đang được xử lý.'),
+                    : auto
+                      ? 'Đã nhận được tiền. Email giao tài liệu đang được gửi, bạn chờ thêm chút nhé.'
+                      : 'Sunz đã xác nhận thanh toán. Email giao tài liệu đang được xử lý.'),
               'success'
             );
 
@@ -564,12 +574,16 @@ import { MESSENGER } from '../data/products';
 
           } else if (!current.confirmed) {
             setStatus(
-              english
-                ? 'Waiting for Sunz to confirm payment'
-                : 'Đang chờ Sunz xác nhận thanh toán',
-              english
-                ? 'After transferring, keep this payment window open. It will update when Sunz confirms your order.'
-                : 'Sau khi chuyển khoản, giữ cửa sổ này mở. Thông báo sẽ cập nhật khi Sunz xác nhận đơn trong Sheet.'
+              auto
+                ? (english ? 'Waiting for your transfer…' : 'Đang chờ nhận tiền chuyển khoản…')
+                : (english ? 'Waiting for Sunz to confirm payment' : 'Đang chờ Sunz xác nhận thanh toán'),
+              auto
+                ? (english
+                    ? 'Keep this window open. It updates automatically within 1–2 minutes after the money arrives.'
+                    : 'Giữ cửa sổ này mở. Thông báo tự cập nhật trong 1–2 phút sau khi tiền vào tài khoản.')
+                : (english
+                    ? 'After transferring, keep this payment window open. It will update when Sunz confirms your order.'
+                    : 'Sau khi chuyển khoản, giữ cửa sổ này mở. Thông báo sẽ cập nhật khi Sunz xác nhận đơn trong Sheet.')
             );
           }
 
@@ -594,7 +608,8 @@ import { MESSENGER } from '../data/products';
         }
 
         if (!finished && run === checkRun && dlg.open) {
-          statusTimer = window.setTimeout(check, 15000);
+          // SePay tự xác nhận: kiểm tra mỗi 5 giây khi chờ tiền, 10 giây khi chờ email; xác nhận tay: 15 giây
+          statusTimer = window.setTimeout(check, !auto ? 15000 : current.confirmed ? 10000 : 5000);
         }
       };
 
@@ -602,9 +617,13 @@ import { MESSENGER } from '../data/products';
         lang() === 'en'
           ? 'Checking your order…'
           : 'Đang kiểm tra trạng thái đơn…',
-        lang() === 'en'
-          ? 'Sunz will confirm payment after checking the bank transfer.'
-          : 'Sunz sẽ xác nhận thanh toán sau khi kiểm tra tiền chuyển khoản.'
+        auto
+          ? (lang() === 'en'
+              ? 'Payment is confirmed automatically once the transfer arrives.'
+              : 'Thanh toán được xác nhận tự động ngay khi tiền vào tài khoản.')
+          : (lang() === 'en'
+              ? 'Sunz will confirm payment after checking the bank transfer.'
+              : 'Sunz sẽ xác nhận thanh toán sau khi kiểm tra tiền chuyển khoản.')
       );
 
       void check();
@@ -697,9 +716,13 @@ import { MESSENGER } from '../data/products';
         confirmed: false,
       };
 
-      const qr =
-        `https://img.vietqr.io/image/${dlg.dataset.bin}-${dlg.dataset.account}-compact.png` +
-        `?amount=${amount}&addInfo=${encodeURIComponent(code)}&accountName=${encodeURIComponent(dlg.dataset.holder || '')}`;
+      // Ảnh QR (chuẩn VietQR) có sẵn số tiền + nội dung CK. Bật SePay → dùng QR của SePay, không thì img.vietqr.io.
+      const qr = auto
+        ? `https://qr.sepay.vn/img?acc=${encodeURIComponent(dlg.dataset.account || '')}` +
+          `&bank=${encodeURIComponent(dlg.dataset.bank || '')}&amount=${amount}` +
+          `&des=${encodeURIComponent(code)}&template=compact`
+        : `https://img.vietqr.io/image/${dlg.dataset.bin}-${dlg.dataset.account}-compact.png` +
+          `?amount=${amount}&addInfo=${encodeURIComponent(code)}&accountName=${encodeURIComponent(dlg.dataset.holder || '')}`;
       $<HTMLImageElement>('[data-pay-qr]').src = qr;
       $<HTMLAnchorElement>('[data-pay-save]').href = qr;
       $('[data-pay-amount]').textContent = vnd(amount);

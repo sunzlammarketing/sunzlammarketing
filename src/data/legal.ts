@@ -1,8 +1,11 @@
 // Thông tin chủ sở hữu website + nội dung các trang chính sách (/chinh-sach/<slug>).
 // Footer, trang chính sách đều đọc từ đây. Trường nào để trống ('') thì tự ẩn trên web.
 // Khi có mã số thuế / đăng ký hộ kinh doanh: điền vào OWNER rồi build lại.
-// Luồng bán hiện tại: chuyển khoản VietQR → Sunz xác nhận thủ công → gửi link tải qua email
+// Luồng bán: chuyển khoản QR → Sunz xác nhận thủ công, hoặc SePay tự xác nhận khi SEPAY_AUTO = true
+// (src/data/payment.ts) → gửi link tải qua email
 // (link hạn 30 ngày, tối đa 15 lượt tải/đơn — khớp MAX_DOWNLOADS trong tools/google-sheet-orders.gs).
+
+import { SEPAY_AUTO } from './payment';
 
 export const OWNER = {
   brand: 'Sunz Làm Marketing',
@@ -51,7 +54,7 @@ export const POLICIES: Policy[] = [
         html: `<ol>
 <li>Bấm "Mua ngay" / "Đăng ký ngay" và nhập email, số điện thoại (bắt buộc), họ tên (không bắt buộc).</li>
 <li>Chuyển khoản theo mã QR hiển thị, đúng số tiền và nội dung chuyển khoản.</li>
-<li>Sunz xác nhận thanh toán và gửi link tải sản phẩm vào email của bạn (chi tiết tại <a href="/chinh-sach/chinh-sach-giao-hang">Chính sách giao hàng</a>).</li>
+<li>${SEPAY_AUTO ? 'Hệ thống tự xác nhận thanh toán khi tiền vào tài khoản' : 'Sunz xác nhận thanh toán'} và gửi link tải sản phẩm vào email của bạn (chi tiết tại <a href="/chinh-sach/chinh-sach-giao-hang">Chính sách giao hàng</a>).</li>
 </ol>
 <p>Hợp đồng mua bán được xác lập khi Sunz xác nhận đã nhận đủ tiền cho đơn hàng.</p>`,
       },
@@ -139,20 +142,22 @@ export const POLICIES: Policy[] = [
     sections: [
       {
         h: '1. Hình thức thanh toán',
-        html: `<p>Sunz nhận thanh toán bằng <b>chuyển khoản ngân hàng qua mã VietQR</b>. Sau khi bạn nhập thông tin, website hiển thị mã QR với số tài khoản, số tiền và nội dung chuyển khoản điền sẵn. Mở ứng dụng ngân hàng bất kỳ, quét mã và xác nhận.</p>
+        html: `<p>Sunz nhận thanh toán bằng <b>chuyển khoản ngân hàng qua mã VietQR</b>${SEPAY_AUTO ? ' (đối soát tự động qua SePay)' : ''}. Sau khi bạn nhập thông tin, website hiển thị mã QR với số tài khoản, số tiền và nội dung chuyển khoản điền sẵn. Mở ứng dụng ngân hàng bất kỳ, quét mã và xác nhận.</p>
 <p>Website hiện chưa nhận thanh toán bằng thẻ, ví điện tử hay tiền mặt.</p>`,
       },
       {
         h: '2. Lưu ý khi chuyển khoản',
         html: `<ul>
-<li>Giữ nguyên <b>nội dung chuyển khoản</b> (dạng <code>SUNZ &lt;mã sản phẩm&gt; &lt;số điện thoại&gt;</code>) để Sunz đối chiếu đúng đơn.</li>
+<li>Giữ nguyên <b>nội dung chuyển khoản</b> (dạng <code>SUNZ &lt;mã sản phẩm&gt; &lt;số điện thoại&gt; &lt;mã đơn&gt;</code>) để ${SEPAY_AUTO ? 'hệ thống tự nhận đúng đơn. Sửa hoặc xoá nội dung thì đơn phải chờ đối soát thủ công' : 'Sunz đối chiếu đúng đơn'}.</li>
 <li>Chuyển <b>đúng số tiền</b> hiển thị. Chuyển thiếu, Sunz sẽ liên hệ để bạn bổ sung; chuyển thừa hoặc trùng, Sunz hoàn lại phần chênh lệch.</li>
 <li>Chỉ chuyển vào tài khoản hiển thị trong mã QR trên website. Sunz không yêu cầu chuyển khoản qua tin nhắn từ tài khoản lạ.</li>
 </ul>`,
       },
       {
         h: '3. Xác nhận thanh toán',
-        html: `<p>Sunz đối chiếu giao dịch và xác nhận thủ công, thường trong vòng vài giờ và tối đa 24 giờ kể từ khi nhận tiền. Sau khi xác nhận, link tải được gửi vào email bạn đã nhập.</p>`,
+        html: SEPAY_AUTO
+          ? `<p>Giao dịch đúng số tiền và nội dung chuyển khoản được <b>xác nhận tự động</b>, thường trong 1–2 phút kể từ khi tiền vào tài khoản. Link tải được gửi ngay vào email bạn đã nhập. Trường hợp nội dung chuyển khoản bị sai hoặc thiếu tiền, Sunz đối soát thủ công trong tối đa 24 giờ.</p>`
+          : `<p>Sunz đối chiếu giao dịch và xác nhận thủ công, thường trong vòng vài giờ và tối đa 24 giờ kể từ khi nhận tiền. Sau khi xác nhận, link tải được gửi vào email bạn đã nhập.</p>`,
       },
       {
         h: '4. Hóa đơn',
@@ -171,7 +176,7 @@ export const POLICIES: Policy[] = [
       },
       {
         h: '2. Thời gian giao',
-        html: `<p>Trong vòng <b>24 giờ</b> kể từ khi Sunz nhận được thanh toán, thường sớm hơn trong giờ hành chính. Nếu quá thời gian này chưa nhận được email, hãy kiểm tra hộp thư Spam/Quảng cáo rồi liên hệ ${contactLine()}</p>`,
+        html: `<p>${SEPAY_AUTO ? 'Thường trong <b>1–2 phút</b> sau khi tiền vào tài khoản (xác nhận tự động). Trường hợp cần đối soát thủ công (nội dung chuyển khoản sai, thiếu tiền) thì tối đa <b>24 giờ</b>.' : 'Trong vòng <b>24 giờ</b> kể từ khi Sunz nhận được thanh toán, thường sớm hơn trong giờ hành chính.'} Nếu quá thời gian này chưa nhận được email, hãy kiểm tra hộp thư Spam/Quảng cáo rồi liên hệ ${contactLine()}</p>`,
       },
       {
         h: '3. Link tải',

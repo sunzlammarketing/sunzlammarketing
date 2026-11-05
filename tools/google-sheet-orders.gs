@@ -11,8 +11,15 @@
  * 5. Triển khai → Quản lý các bản triển khai → ✏️ → Phiên bản mới → Triển khai (giữ nguyên URL).
  * 6. Sau khi thử tải OK: đổi chia sẻ các file/thư mục trên Drive về "Bị hạn chế".
  *
+ * 7. SePay (tự xác nhận thanh toán): Cài đặt dự án (⚙️) → Thuộc tính tập lệnh → thêm
+ *    SEPAY_KEY = đúng API Key đã đặt cho webhook trên SePay (cùng giá trị với secret
+ *    SEPAY_KEY của Cloudflare Worker). Xem hướng dẫn trong SEPAY.md.
+ *
  * ── HẰNG NGÀY ───────────────────────────────────────────────────────────────────
- * Đối chiếu sao kê → cột "Trạng thái" chọn "Đã thanh toán" → email giao hàng tự gửi.
+ * Có SePay: tiền vào Sacombank → SePay báo webhook → đơn tự chuyển "Đã thanh toán" và
+ * email giao hàng tự gửi. Tab "Giao dịch SePay" ghi mọi giao dịch tiền vào để đối chiếu.
+ * Giao dịch không khớp đơn nào (sai nội dung, thiếu tiền) → ghi "Không khớp", bạn xử lý tay:
+ * cột "Trạng thái" chọn "Đã thanh toán" → email giao hàng tự gửi (như cũ).
  * Menu Sunz › "Gửi lại email…" = gửi link mới cho dòng đang chọn (đặt lại lượt tải).
  */
 
@@ -56,8 +63,10 @@ const PRODUCTS = {
 };
 
 // Cột trong sheet (1 = A)
-const COL = { time: 1, code: 2, product: 3, amount: 4, name: 5, phone: 6, email: 7, status: 8, page: 9, sentAt: 10, downloads: 11 };
-const HEADERS = ['Thời gian', 'Mã đơn (nội dung CK)', 'Sản phẩm', 'Số tiền', 'Họ tên', 'SĐT / Zalo', 'Email', 'Trạng thái', 'Trang', 'Đã gửi email lúc', 'Lượt tải'];
+const COL = { time: 1, code: 2, product: 3, amount: 4, name: 5, phone: 6, email: 7, status: 8, page: 9, sentAt: 10, downloads: 11, token: 12, txn: 13 };
+const HEADERS = ['Thời gian', 'Mã đơn (nội dung CK)', 'Sản phẩm', 'Số tiền', 'Họ tên', 'SĐT / Zalo', 'Email', 'Trạng thái', 'Trang', 'Đã gửi email lúc', 'Lượt tải', 'Mã theo dõi (web)', 'Mã giao dịch SePay'];
+const TXN_SHEET = 'Giao dịch SePay';
+const TXN_HEADERS = ['Nhận lúc', 'Mã GD SePay', 'Ngày GD (ngân hàng)', 'Số tiền', 'Nội dung CK', 'Mã tham chiếu', 'Kết quả', 'Mã đơn khớp'];
 const STATUS = { pending: 'Chờ thanh toán', claimed: 'Khách báo đã CK', paid: 'Đã thanh toán', sent: 'Đã gửi email', missing: 'Thiếu file tải', cancel: 'Huỷ' };
 
 // ===== LƯU ĐƠN TỪ WEB =====
@@ -82,6 +91,8 @@ function doPost(e) {
     const sh = getSheet_();
     const code = String(d.code || '').slice(0, 60);
 
+    if (d.action === 'sepay') return out_(handleSepay_(d));
+
     if (d.action === 'claim') {
       const row = findRow_(code);
       if (row) {
@@ -103,6 +114,8 @@ function doPost(e) {
       String(d.page || '').slice(0, 200),
       '',
       0,
+      String(d.statusToken || '').slice(0, 40),
+      '',
     ]);
     return out_({ ok: true });
   } catch (err) {
@@ -123,6 +136,109 @@ function findRow_(code) {
   if (n < 1) return 0;
   const codes = sh.getRange(2, COL.code, n, 1).getValues();
   for (let i = codes.length - 1; i >= 0; i--) if (codes[i][0] === code) return i + 2;
+  return 0;
+}
+
+// ===== TRẠNG THÁI ĐƠN CHO WEB =====
+function orderStatus_(token) {
+  if (!/^[0-9a-f-]{36}$/i.test(token)) return { ok: false, error: 'not_found' };
+  const sh = getSheet_();
+  const n = sh.getLastRow() - 1;
+  if (n < 1) return { ok: false, error: 'not_found' };
+  const tokens = sh.getRange(2, COL.token, n, 1).getValues();
+  for (let i = tokens.length - 1; i >= 0; i--) {
+    if (String(tokens[i][0]) !== token) continue;
+    const st = String(sh.getRange(i + 2, COL.status).getValue());
+    const payment = st === STATUS.cancel ? 'cancelled' : st === STATUS.paid || st === STATUS.sent || st === STATUS.missing ? 'confirmed' : 'pending';
+    return { ok: true, payment, delivery: st === STATUS.sent ? 'sent' : 'not_sent' };
+  }
+  return { ok: false, error: 'not_found' };
+}
+
+// ===== SEPAY: TỰ XÁC NHẬN THANH TOÁN =====
+// Cloudflare Worker (/api/sepay, worker/sepay.js) đã kiểm tra API Key của SePay rồi chuyển giao dịch sang đây.
+// Trả ok:true khi đã xử lý xong (kể cả không khớp đơn) để SePay không gửi lại; ok:false → SePay thử lại.
+function handleSepay_(d) {
+  const key = PropertiesService.getScriptProperties().getProperty('SEPAY_KEY');
+  if (!key || d.key !== key) return { ok: false, error: 'unauthorized' };
+  const tx = d.tx || {};
+  const id = String(tx.id || '');
+  if (!id) return { ok: false, error: 'missing_id' };
+
+  const log = txnSheet_();
+  if (log.getLastRow() > 1) {
+    const ids = log.getRange(2, 2, log.getLastRow() - 1, 1).getValues();
+    if (ids.some((r) => String(r[0]) === id)) return { ok: true, duplicate: true }; // SePay gửi lại
+  }
+
+  const amount = Number(tx.transferAmount) || 0;
+  const content = String(tx.content || '');
+  let result = 'Không khớp đơn nào';
+  let matched = '';
+  let deliverRow = 0;
+
+  if (tx.transferType && tx.transferType !== 'in') {
+    result = 'Bỏ qua (tiền ra)';
+  } else {
+    const row = findRowByContent_(content);
+    if (row) {
+      const sh = getSheet_();
+      const v = sh.getRange(row, 1, 1, HEADERS.length).getValues()[0];
+      matched = String(v[COL.code - 1]);
+      const due = Number(v[COL.amount - 1]) || 0;
+      const st = String(v[COL.status - 1]);
+      if (st === STATUS.sent || st === STATUS.paid) {
+        result = 'Đơn đã thanh toán trước đó (kiểm tra chuyển trùng)';
+      } else if (amount < due) {
+        result = 'Thiếu tiền: nhận ' + amount + ', cần ' + due;
+        sh.getRange(row, COL.status).setNote('SePay: nhận ' + amount + ' ₫, thiếu ' + (due - amount) + ' ₫ (GD ' + id + ')');
+      } else {
+        sh.getRange(row, COL.status).setValue(STATUS.paid);
+        sh.getRange(row, COL.txn).setValue(id);
+        result = 'Đã xác nhận đơn';
+        deliverRow = row;
+      }
+    }
+  }
+
+  log.appendRow([new Date(), id, String(tx.transactionDate || ''), amount, content, String(tx.referenceCode || ''), result, matched]);
+  // Gửi email sau khi đã ghi log; lỗi gửi mail không làm SePay gửi lại giao dịch
+  if (deliverRow) {
+    try {
+      deliver_(deliverRow);
+    } catch (err) {
+      note_(getSheet_().getRange(deliverRow, COL.status), 'Đã nhận tiền nhưng gửi email lỗi: ' + err);
+    }
+  }
+  return { ok: true, result };
+}
+
+function txnSheet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sh = ss.getSheetByName(TXN_SHEET);
+  if (!sh) {
+    sh = ss.insertSheet(TXN_SHEET);
+    sh.appendRow(TXN_HEADERS);
+    sh.setFrozenRows(1);
+    sh.getRange(1, 1, 1, TXN_HEADERS.length).setFontWeight('bold').setBackground('#dcfce7');
+  }
+  return sh;
+}
+
+// Ngân hàng có thể đổi hoa/thường, bỏ dấu cách hoặc chèn thêm chữ vào nội dung CK.
+// So khớp theo mã đơn đã bỏ hết ký tự không phải chữ/số (đơn mới nhất trước).
+function findRowByContent_(content) {
+  const norm = (s) => String(s).toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const text = norm(content);
+  if (!text) return 0;
+  const sh = getSheet_();
+  const n = sh.getLastRow() - 1;
+  if (n < 1) return 0;
+  const codes = sh.getRange(2, COL.code, n, 1).getValues();
+  for (let i = codes.length - 1; i >= 0; i--) {
+    const c = norm(codes[i][0]);
+    if (c.length >= 12 && text.indexOf(c) !== -1) return i + 2;
+  }
   return 0;
 }
 
@@ -149,9 +265,13 @@ function downloadUrl_(code, pcode, index) {
   return SITE + '/dl?t=' + makeToken_(code, pcode, index);
 }
 
-// Cloudflare Worker gọi: ?dl=<token> → trả file (base64) nếu token hợp lệ
+// Cloudflare Worker gọi:
+//  ?action=order-status&token=<mã theo dõi> → trạng thái đơn cho cửa sổ thanh toán trên web
+//  ?dl=<token> → trả file (base64) nếu token hợp lệ
 function doGet(e) {
-  const t = (e && e.parameter && e.parameter.dl) || '';
+  const prm = (e && e.parameter) || {};
+  if (prm.action === 'order-status') return out_(orderStatus_(String(prm.token || '')));
+  const t = prm.dl || '';
   if (!t) return out_({ ok: false, error: 'Thiếu mã tải.' });
   try {
     const parts = t.split('.');
@@ -225,7 +345,14 @@ function setup() {
     .forEach((t) => ScriptApp.deleteTrigger(t));
   ScriptApp.newTrigger('onStatusEdit').forSpreadsheet(ss).onEdit().create();
   secret_();
-  SpreadsheetApp.getUi().alert('Đã bật gửi email giao hàng + link tải có bảo vệ. Chọn "Đã thanh toán" ở cột Trạng thái để gửi.');
+  txnSheet_();
+  const sepay = PropertiesService.getScriptProperties().getProperty('SEPAY_KEY');
+  SpreadsheetApp.getUi().alert(
+    'Đã bật gửi email giao hàng + link tải có bảo vệ.\n' +
+      (sepay
+        ? 'SePay: đã có SEPAY_KEY, đơn sẽ tự xác nhận khi tiền vào.'
+        : 'SePay: CHƯA có SEPAY_KEY trong Thuộc tính tập lệnh, đơn vẫn phải xác nhận tay.')
+  );
 }
 
 function onOpen() {
