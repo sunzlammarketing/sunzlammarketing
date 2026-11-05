@@ -6,6 +6,7 @@
 //   trình duyệt tải xuống ngay. Người mua không bao giờ thấy link Drive.
 // Không có bí mật nào ở đây: khoá ký token chỉ nằm trong Apps Script.
 import { handleSeoApi } from './seo-api.js';
+import { handleSepay, handlePayStatus } from './sepay.js';
 
 // Cùng URL với ORDER_SHEET_URL trong src/data/payment.ts
 const APPS_SCRIPT =
@@ -19,6 +20,8 @@ export default {
         if (url.pathname === '/api/order-status') {
       return orderStatus(request, url);
     }
+    if (url.pathname === '/api/sepay') return handleSepay(request, env);
+    if (url.pathname === '/api/pay-status') return handlePayStatus(request, env, url);
     if (url.pathname.startsWith('/api/seo/')) return handleSeoApi(request, env, url);
     return env.ASSETS.fetch(request);
   },

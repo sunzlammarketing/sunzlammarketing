@@ -15,4 +15,5 @@
   // KV đếm lượt dùng công cụ kiểm tra SEO (10 lượt/IP/giờ) — xem worker/seo-api.js
   "kv_namespaces": [{ "binding": "RATE_KV", "id": "bf09b2e99bf943f1874800b1086c3cc7" }]
   // Secret PAGESPEED_API_KEY: thêm trên dashboard Cloudflare (Settings → Variables and Secrets), không ghi ở đây
+  // Secret SEPAY_KEY: khoá API Key của webhook SePay (worker/sepay.js), cũng thêm trên dashboard, không ghi ở đây
 }
