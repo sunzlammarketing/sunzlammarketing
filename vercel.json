@@ -1,12 +1,9 @@
 {
   "redirects": [
-    { "source": "/tai-lieu-mien-phi", "destination": "/tai-lieu", "permanent": true },
-    { "source": "/tai-lieu-mien-phi/", "destination": "/tai-lieu", "permanent": true },
-    { "source": "/tai-lieu/50-mau-caption-ban-hang", "destination": "/tai-lieu/ebook-50-cong-thuc-viet-content", "permanent": true },
-    { "source": "/tai-lieu/50-mau-caption-ban-hang/", "destination": "/tai-lieu/ebook-50-cong-thuc-viet-content", "permanent": true },
-    { "source": "/tai-lieu/cam-nang-facebook-ads", "destination": "/tai-lieu/30-prompt-ai-cho-marketer", "permanent": true },
-    { "source": "/tai-lieu/cam-nang-facebook-ads/", "destination": "/tai-lieu/30-prompt-ai-cho-marketer", "permanent": true },
-    { "source": "/tai-lieu/ke-hoach-content-30-ngay", "destination": "/tai-lieu/check-phap-ly-quang-cao-2026", "permanent": true },
-    { "source": "/tai-lieu/ke-hoach-content-30-ngay/", "destination": "/tai-lieu/check-phap-ly-quang-cao-2026", "permanent": true }
+    {
+      "source": "/:path*",
+      "destination": "https://sunzlammarketing.sunzlammarketing.workers.dev/:path*",
+      "permanent": true
+    }
   ]
 }
