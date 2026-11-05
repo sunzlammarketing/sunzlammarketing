@@ -21,7 +21,7 @@ const PACKS = {
 };
 const PROMO_UNTIL = Date.parse('2026-11-15T23:59:59+07:00');
 // Sheet "Đơn hàng Sao Kể" (Apps Script riêng của Sao Kể): tab "Mã giảm giá"
-const SAOKE_SHEET = 'https://script.google.com/macros/s/AKfycbxTSZwukHtUu3JFgxBgbo9g19bWIFTPoR5EqavUyfpHyZ0zhyogASNrs3keJRUjvlLb8A/exec';
+const SAOKE_SHEET = 'https://script.google.com/macros/s/AKfycbz-RlRxdniOxuMSLGHBn3V8Xigf0zZMIumPIs3z3twQWt6wIafJAW7HtY7wQ3nzF9iJZA/exec';
 const MAX_OFF = 0.5; // tổng giảm (khuyến mãi + mã) không quá 50% giá gốc
 const ORIGINS = ['https://sao-ke-ban-nghe.vercel.app', 'http://localhost:4330'];
 
