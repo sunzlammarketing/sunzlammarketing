@@ -6,7 +6,7 @@
 //      → tạo mã đơn "SAOKE <gói> <SĐT> <8 ký tự>", giá do MÁY CHỦ quyết định; lưu KV saoke:order:<mã>.
 // - GET  /api/saoke/me     (Authorization: Bearer …) → {packs: {SKCS: {buys, cap, slots}, …}} gói đã mua.
 // - POST /api/saoke/claim  (Authorization: Bearer …) body {pack, k, label} → dùng 1 lượt của gói cho 1 người
-//      (k = mã hoá ngày giờ nơi sinh, do web tính). Mỗi lượt mua: SKCS, SKVIP = 2 người; SKCN = 1 gia đình; SKGD = 1 cặp ghép đôi.
+//      (k = mã hoá ngày giờ nơi sinh, do web tính). Mỗi lượt mua: SKCS, SKVIP = 2 người; SKCN = 1 gia đình; SKGD = 2 cặp ghép đôi.
 // - GET  /api/saoke/quote?pack=&coupon=  → {base, discount, total, coupon} (giá cuối do máy chủ tính)
 // - grantSaoke(env, code)  : gọi từ webhook SePay (worker/sepay.js) khi mã SAOKE có tiền về;
 //      đủ tiền → thêm 1 lượt mua vào KV saoke:ent:<uid>. Gọi lại nhiều lần cũng không sao (nhớ theo mã đơn).
@@ -18,7 +18,7 @@ const PACKS = {
   SKCS: { name: 'Bản giải chuyên sâu', regular: 75000, promo: 52500, per: 2 },
   SKCN: { name: 'Gói Tết cả nhà', regular: 75000, promo: 52500, per: 1 },
   SKVIP: { name: 'Gói VIP', regular: 149000, promo: 99000, per: 2 },
-  SKGD: { name: 'Ghép đôi', regular: 29000, promo: 19000, per: 1 }, // 1 lượt = 1 cặp ghép đôi
+  SKGD: { name: 'Ghép đôi', regular: 29000, promo: 19000, per: 2 }, // 1 lượt = 2 cặp ghép đôi
 };
 const PROMO_UNTIL = Date.parse('2026-11-15T23:59:59+07:00');
 // Sheet "Đơn hàng Sao Kể" (Apps Script riêng của Sao Kể): tab "Mã giảm giá"
