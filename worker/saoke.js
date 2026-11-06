@@ -15,10 +15,10 @@
 const PROJECT = 'sao-ke-ban-nghe';
 // Giá gốc / giá ưu đãi (đến hết PROMO_UNTIL) / số người mỗi lượt mua
 const PACKS = {
-  SKCS: { name: 'Bản giải chuyên sâu', regular: 75000, promo: 52500, per: 2 },
-  SKCN: { name: 'Gói Tết cả nhà', regular: 75000, promo: 52500, per: 1 },
+  SKCS: { name: 'Luận giải bản đồ sao & tử vi chuyên sâu', regular: 75000, promo: 52500, per: 2 },
+  SKCN: { name: 'Xem Tử vi Tết cho Gia đình', regular: 75000, promo: 52500, per: 1 },
   SKVIP: { name: 'Gói VIP', regular: 149000, promo: 99000, per: 2 },
-  SKGD: { name: 'Ghép đôi', regular: 29000, promo: 19000, per: 2 }, // 1 lượt = 2 cặp ghép đôi
+  SKGD: { name: 'Ghép đôi bản đồ sao', regular: 29000, promo: 19000, per: 2 }, // 1 lượt = 2 cặp ghép đôi
 };
 const PROMO_UNTIL = Date.parse('2026-11-15T23:59:59+07:00');
 // Sheet "Đơn hàng Sao Kể" (Apps Script riêng của Sao Kể): tab "Mã giảm giá"
