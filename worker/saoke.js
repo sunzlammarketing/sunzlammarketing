@@ -6,7 +6,7 @@
 //      → tạo mã đơn "SAOKE <gói> <SĐT> <8 ký tự>", giá do MÁY CHỦ quyết định; lưu KV saoke:order:<mã>.
 // - GET  /api/saoke/me     (Authorization: Bearer …) → {packs: {SKCS: {buys, cap, slots}, …}} gói đã mua.
 // - POST /api/saoke/claim  (Authorization: Bearer …) body {pack, k, label} → dùng 1 lượt của gói cho 1 người
-//      (k = mã hoá ngày giờ nơi sinh, do web tính). Mỗi lượt mua: SKCS, SKVIP = 2 người; SKCN = 1 gia đình; SKGD = 2 cặp ghép đôi.
+//      (k = mã hoá ngày giờ nơi sinh, do web tính). Mỗi lượt mua: SKCS, SKVIP = 2 người; SKCN = 1 gia đình; SKGD = 2 cặp ghép đôi; mỗi lượt SKVIP kèm 5 cặp ghép đôi (SKVIPGD).
 // - GET  /api/saoke/quote?pack=&coupon=  → {base, discount, total, coupon} (giá cuối do máy chủ tính)
 // - grantSaoke(env, code)  : gọi từ webhook SePay (worker/sepay.js) khi mã SAOKE có tiền về;
 //      đủ tiền → thêm 1 lượt mua vào KV saoke:ent:<uid>. Gọi lại nhiều lần cũng không sao (nhớ theo mã đơn).
@@ -19,6 +19,8 @@ const PACKS = {
   SKCN: { name: 'Xem Tử vi Tết cho Gia đình', regular: 75000, promo: 39000, per: 1 },
   SKVIP: { name: 'Gói VIP', regular: 189000, promo: 99000, per: 2 },
   SKGD: { name: 'Ghép đôi bản đồ sao', regular: 49000, promo: 29000, per: 2 }, // 1 lượt = 2 cặp ghép đôi
+  // Lượt ghép đôi đi kèm Gói VIP: mỗi lượt mua VIP được 5 cặp; không bán riêng (internal)
+  SKVIPGD: { name: 'Ghép đôi kèm Gói VIP', regular: 0, promo: 0, per: 5, internal: true },
 };
 const PROMO_FROM = Date.parse('2026-11-20T00:00:00+07:00'); // đợt ưu đãi 20/11 – 30/11/2026 (áp ngay từ 20/11 theo yêu cầu)
 const PROMO_UNTIL = Date.parse('2026-11-30T23:59:59+07:00');
@@ -87,6 +89,8 @@ function normEnt(ent) {
   for (const [k, v] of Object.entries(ent.packs)) {
     if (v && v.buys == null) ent.packs[k] = { buys: 1, codes: v.code ? [v.code] : [], slots: [] };
   }
+  // VIP mua trước khi có giới hạn 5 cặp: tự bổ sung lượt ghép đôi kèm theo
+  if (ent.packs.SKVIP && !ent.packs.SKVIPGD) ent.packs.SKVIPGD = { buys: ent.packs.SKVIP.buys, codes: [], slots: [] };
   return ent;
 }
 const view = (ent) => Object.fromEntries(Object.entries(ent.packs).map(([k, v]) => [k, { buys: v.buys, cap: v.buys * (PACKS[k]?.per || 1), slots: (v.slots || []).map((x) => ({ k: x.k, label: x.label })) }]));
@@ -103,6 +107,7 @@ export async function grantSaoke(env, code) {
   if (p.codes.includes(code)) return true;
   p.codes.push(code);
   p.buys += 1;
+  if (order.pack === 'SKVIP') { const g = (ent.packs.SKVIPGD = ent.packs.SKVIPGD || { buys: 0, codes: [], slots: [] }); if (!g.codes.includes(code)) { g.codes.push(code); g.buys += 1; } }
   await env.RATE_KV.put(key, JSON.stringify(ent));
   return true;
 }
@@ -129,7 +134,7 @@ export async function handleSaoke(request, env, url) {
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders(request) });
   if (url.pathname === '/api/saoke/quote' && request.method === 'GET') {
     const pack = String(url.searchParams.get('pack') || '');
-    if (!PACKS[pack]) return json(request, { ok: false, error: 'bad_pack' }, 400);
+    if (!PACKS[pack] || PACKS[pack].internal) return json(request, { ok: false, error: 'bad_pack' }, 400);
     // chống dò mã: 30 lần/IP/giờ
     const ip = request.headers.get('CF-Connecting-IP') || 'x', rk = `saoke:quote:${ip}:${Math.floor(Date.now() / 3600e3)}`;
     const n = Number((await env.RATE_KV.get(rk)) || 0);
@@ -169,7 +174,7 @@ export async function handleSaoke(request, env, url) {
     try { d = await request.json(); } catch {}
     const pack = String(d.pack || '');
     const phone = String(d.phone || '').replace(/[^\d]/g, '').replace(/^84/, '0');
-    if (!PACKS[pack]) return json(request, { ok: false, error: 'bad_pack' }, 400);
+    if (!PACKS[pack] || PACKS[pack].internal) return json(request, { ok: false, error: 'bad_pack' }, 400);
     if (!/^0[1-9]\d{8}$/.test(phone)) return json(request, { ok: false, error: 'bad_phone' }, 400);
     const q = await quote(pack, d.coupon);
     if (!q.ok) return json(request, { ok: false, error: q.error }, 400);
