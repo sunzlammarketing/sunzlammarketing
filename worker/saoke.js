@@ -15,18 +15,19 @@
 const PROJECT = 'sao-ke-ban-nghe';
 // Giá gốc / giá ưu đãi (đến hết PROMO_UNTIL) / số người mỗi lượt mua
 const PACKS = {
-  SKCS: { name: 'Luận giải bản đồ sao & tử vi chuyên sâu', regular: 75000, promo: 52500, per: 2 },
-  SKCN: { name: 'Xem Tử vi Tết cho Gia đình', regular: 75000, promo: 52500, per: 1 },
-  SKVIP: { name: 'Gói VIP', regular: 149000, promo: 99000, per: 2 },
-  SKGD: { name: 'Ghép đôi bản đồ sao', regular: 29000, promo: 19000, per: 2 }, // 1 lượt = 2 cặp ghép đôi
+  SKCS: { name: 'Luận giải bản đồ sao & tử vi chuyên sâu', regular: 99000, promo: 55000, per: 2 },
+  SKCN: { name: 'Xem Tử vi Tết cho Gia đình', regular: 75000, promo: 39000, per: 1 },
+  SKVIP: { name: 'Gói VIP', regular: 189000, promo: 99000, per: 2 },
+  SKGD: { name: 'Ghép đôi bản đồ sao', regular: 49000, promo: 29000, per: 2 }, // 1 lượt = 2 cặp ghép đôi
 };
-const PROMO_UNTIL = Date.parse('2026-11-15T23:59:59+07:00');
+const PROMO_FROM = Date.parse('2026-11-21T00:00:00+07:00'); // đợt ưu đãi 21/11 – 30/11/2026
+const PROMO_UNTIL = Date.parse('2026-11-30T23:59:59+07:00');
 // Sheet "Đơn hàng Sao Kể" (Apps Script riêng của Sao Kể): tab "Mã giảm giá"
 const SAOKE_SHEET = 'https://script.google.com/macros/s/AKfycbz-RlRxdniOxuMSLGHBn3V8Xigf0zZMIumPIs3z3twQWt6wIafJAW7HtY7wQ3nzF9iJZA/exec';
 const MAX_OFF = 0.5; // tổng giảm (khuyến mãi + mã) không quá 50% giá gốc
 const ORIGINS = ['https://sao-ke-ban-nghe.vercel.app', 'http://localhost:4330'];
 
-export const priceNow = (pack, now = Date.now()) => (now <= PROMO_UNTIL ? PACKS[pack].promo : PACKS[pack].regular);
+export const priceNow = (pack, now = Date.now()) => (now >= PROMO_FROM && now <= PROMO_UNTIL ? PACKS[pack].promo : PACKS[pack].regular);
 
 function corsHeaders(request) {
   const o = request.headers.get('Origin') || '';
