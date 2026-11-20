@@ -107,7 +107,7 @@ export async function grantSaoke(env, code) {
   return true;
 }
 
-// Giá cuối cho 1 gói + mã giảm giá (mã kiểm ở Sheet Sao Kể). Không bao giờ dưới 50% giá gốc.
+// Giá cuối cho 1 gói + mã giảm giá (mã kiểm ở Sheet Sao Kể). Không dưới 30% giá gốc, trừ mã giảm 100% (về 0đ).
 export async function quote(pack, coupon) {
   const base = priceNow(pack), floor = Math.ceil((PACKS[pack].regular * (1 - MAX_OFF)) / 500) * 500;
   const code = String(coupon || '').trim().toUpperCase();
@@ -119,8 +119,10 @@ export async function quote(pack, coupon) {
     d = await r.json();
   } catch { return { ok: false, error: 'coupon_unavailable' }; }
   if (!d || !d.ok) return { ok: false, error: (d && d.error) || 'coupon_invalid' };
-  const total = Math.max(floor, base - (Number(d.discount) || 0));
-  return { ok: true, base, discount: base - total, total, coupon: d.coupon || code, capped: base - (Number(d.discount) || 0) < floor };
+  // Mã giảm 100% (Sheet đặt "%" = 100 hoặc số tiền ≥ giá) là mã tặng: về đúng 0đ, không áp mức sàn 30%
+  const off = Number(d.discount) || 0, free = off >= base;
+  const total = free ? 0 : Math.max(floor, base - off);
+  return { ok: true, base, discount: base - total, total, coupon: d.coupon || code, capped: !free && base - off < floor, free };
 }
 
 export async function handleSaoke(request, env, url) {
@@ -175,7 +177,13 @@ export async function handleSaoke(request, env, url) {
     const suffix = [...crypto.getRandomValues(new Uint8Array(4))].map((b) => b.toString(16).padStart(2, '0')).join('').toUpperCase();
     const code = `SAOKE ${pack} ${phone} ${suffix}`;
     await env.RATE_KV.put(`saoke:order:${code}`, JSON.stringify({ uid: user.uid, email: user.email, pack, amount, coupon: q.coupon, at: new Date().toISOString() }), { expirationTtl: 60 * 60 * 24 * 60 });
-    return json(request, { ok: true, code, amount, base: q.base, discount: q.discount, coupon: q.coupon, pack, email: user.email });
+    // Đơn 0đ (mã giảm 100%): ghi nhận "đã thanh toán 0đ" rồi cộng lượt ngay, không cần chuyển khoản
+    let paid = false;
+    if (amount === 0) {
+      await env.RATE_KV.put(`pay:${code}`, JSON.stringify({ amount: 0, at: new Date().toISOString(), ids: [], free: true }), { expirationTtl: 60 * 60 * 24 * 60 });
+      paid = await grantSaoke(env, code);
+    }
+    return json(request, { ok: true, code, amount, base: q.base, discount: q.discount, coupon: q.coupon, pack, email: user.email, paid });
   }
   return json(request, { ok: false, error: 'not_found' }, 404);
 }
