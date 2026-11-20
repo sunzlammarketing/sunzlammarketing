@@ -24,7 +24,7 @@ const PROMO_FROM = Date.parse('2026-11-21T00:00:00+07:00'); // đợt ưu đãi 
 const PROMO_UNTIL = Date.parse('2026-11-30T23:59:59+07:00');
 // Sheet "Đơn hàng Sao Kể" (Apps Script riêng của Sao Kể): tab "Mã giảm giá"
 const SAOKE_SHEET = 'https://script.google.com/macros/s/AKfycbz-RlRxdniOxuMSLGHBn3V8Xigf0zZMIumPIs3z3twQWt6wIafJAW7HtY7wQ3nzF9iJZA/exec';
-const MAX_OFF = 0.5; // tổng giảm (khuyến mãi + mã) không quá 50% giá gốc
+const MAX_OFF = 0.7; // tổng giảm (khuyến mãi + mã) không quá 70% giá gốc: giá cuối không dưới 30% giá gốc
 const ORIGINS = ['https://sao-ke-ban-nghe.vercel.app', 'http://localhost:4330'];
 
 export const priceNow = (pack, now = Date.now()) => (now >= PROMO_FROM && now <= PROMO_UNTIL ? PACKS[pack].promo : PACKS[pack].regular);
