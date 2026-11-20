@@ -20,7 +20,7 @@ const PACKS = {
   SKVIP: { name: 'Gói VIP', regular: 189000, promo: 99000, per: 2 },
   SKGD: { name: 'Ghép đôi bản đồ sao', regular: 49000, promo: 29000, per: 2 }, // 1 lượt = 2 cặp ghép đôi
 };
-const PROMO_FROM = Date.parse('2026-11-21T00:00:00+07:00'); // đợt ưu đãi 21/11 – 30/11/2026
+const PROMO_FROM = Date.parse('2026-11-20T00:00:00+07:00'); // đợt ưu đãi 20/11 – 30/11/2026 (áp ngay từ 20/11 theo yêu cầu)
 const PROMO_UNTIL = Date.parse('2026-11-30T23:59:59+07:00');
 // Sheet "Đơn hàng Sao Kể" (Apps Script riêng của Sao Kể): tab "Mã giảm giá"
 const SAOKE_SHEET = 'https://script.google.com/macros/s/AKfycbz-RlRxdniOxuMSLGHBn3V8Xigf0zZMIumPIs3z3twQWt6wIafJAW7HtY7wQ3nzF9iJZA/exec';
