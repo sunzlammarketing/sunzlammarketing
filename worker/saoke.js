@@ -18,7 +18,7 @@
 const PROJECT = 'sao-ke-ban-nghe';
 // Giá gốc / giá ưu đãi (đến hết PROMO_UNTIL) / số người mỗi lượt mua
 const PACKS = {
-  SKCS: { name: 'Luận giải bản đồ sao & tử vi chuyên sâu', regular: 99000, promo: 55000, per: 2 },
+  SKCS: { name: 'Luận giải bản đồ sao & tử vi chuyên sâu', regular: 99000, promo: 79000, per: 2 },
   SKCN: { name: 'Xem Tử vi Tết cho Gia đình', regular: 75000, promo: 39000, per: 1 },
   SKVIP: { name: 'Gói VIP', regular: 189000, promo: 99000, per: 2 },
   SKGD: { name: 'Ghép đôi bản đồ sao', regular: 49000, promo: 29000, per: 2 }, // 1 lượt = 2 cặp ghép đôi
