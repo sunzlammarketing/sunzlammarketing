@@ -20,7 +20,7 @@ const PROJECT = 'sao-ke-ban-nghe';
 const PACKS = {
   SKCS: { name: 'Luận giải bản đồ sao & tử vi - bát tự chuyên sâu', regular: 99000, promo: 79000, per: 2 },
   SKCN: { name: 'Xem Tử vi Tết cho Gia đình', regular: 75000, promo: 39000, per: 1 },
-  SKVIP: { name: 'Gói VIP', regular: 189000, promo: 99000, per: 2 },
+  SKVIP: { name: 'Gói VIP', regular: 209000, promo: 129000, per: 2 },
   SKGD: { name: 'Ghép đôi bản đồ sao', regular: 49000, promo: 29000, per: 2 }, // 1 lượt = 2 cặp ghép đôi
   // Lượt ghép đôi đi kèm Gói VIP: mỗi lượt mua VIP được 5 cặp; không bán riêng (internal)
   SKVIPGD: { name: 'Ghép đôi kèm Gói VIP', regular: 0, promo: 0, per: 5, internal: true },
