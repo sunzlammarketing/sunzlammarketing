@@ -10,6 +10,7 @@
 // - GET  /api/saoke/quote?pack=&coupon=  → {base, discount, total, coupon} (giá cuối do máy chủ tính)
 // - grantSaoke(env, code)  : gọi từ webhook SePay (worker/sepay.js) khi mã SAOKE có tiền về;
 //      đủ tiền → thêm 1 lượt mua vào KV saoke:ent:<uid>. Gọi lại nhiều lần cũng không sao (nhớ theo mã đơn).
+// - Tài khoản ADMINS: /me trả admin: true → web mở miễn phí mọi gói để thử.
 // - GET  /api/saoke/admin/orders, POST /api/saoke/admin/order  : trang quản lý đơn (/quan-ly), chỉ tài khoản ADMINS.
 //      Huỷ / Hoàn tiền → khoá lượt của đơn đó; Đã trả (xác nhận tay) → mở lượt.
 // ID token được kiểm chữ ký bằng khoá công khai của Google, không cần khoá bí mật nào.
@@ -148,8 +149,9 @@ export async function handleSaoke(request, env, url) {
   const auth = request.headers.get('Authorization') || '';
   const user = auth.startsWith('Bearer ') ? await verifyIdToken(auth.slice(7)) : null;
   if (!user) return json(request, { ok: false, error: 'login_required' }, 401);
+  const isAdmin = user.verified && ADMINS.includes(user.email.toLowerCase());
   if (url.pathname.startsWith('/api/saoke/admin/')) {
-    if (!user.verified || !ADMINS.includes(user.email.toLowerCase())) return json(request, { ok: false, error: 'not_admin', email: user.email }, 403);
+    if (!isAdmin) return json(request, { ok: false, error: 'not_admin', email: user.email }, 403);
     if (url.pathname === '/api/saoke/admin/orders' && request.method === 'GET') return json(request, await adminList(env));
     if (url.pathname === '/api/saoke/admin/order' && request.method === 'POST') {
       let d = {};
@@ -164,7 +166,8 @@ export async function handleSaoke(request, env, url) {
   const prices = Object.fromEntries(Object.entries(PACKS).map(([k, v]) => [k, { price: priceNow(k), regular: v.regular, per: v.per }]));
 
   if (url.pathname === '/api/saoke/me' && request.method === 'GET') {
-    return json(request, { ok: true, packs: view(ent), prices, promoUntil: new Date(PROMO_UNTIL).toISOString() });
+    // admin: tài khoản quản lý web được dùng miễn phí mọi gói để thử (web mở hết khi thấy admin: true)
+    return json(request, { ok: true, packs: view(ent), prices, promoUntil: new Date(PROMO_UNTIL).toISOString(), admin: isAdmin });
   }
 
   if (url.pathname === '/api/saoke/claim' && request.method === 'POST') {
